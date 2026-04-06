@@ -1,0 +1,16 @@
+flask
+whisper
+torch
+torchaudio
+torchvision
+numpy
+scipy
+tqdm
+more-itertools
+ffmpeg-python
+soundfile
+requests
+pydub
+python-dotenv
+tiktoken
+numba
