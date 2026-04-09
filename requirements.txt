@@ -14,3 +14,4 @@ pydub
 python-dotenv
 tiktoken
 numba
+opencv-python

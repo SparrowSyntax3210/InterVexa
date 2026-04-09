@@ -7,19 +7,47 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <section class="Interview-page"></section>
     <h1>Interview Page</h1>
     <div class="ai-speaker"></div>
     <div class="speech-text"></div>
     <div class="video-output"></div>
+    <button id="ques">Gerate </button>
     <button id="speak">Speak Now</button>
+    <div id="transcription"></div>
 
+    <input type="file" id="resume" />
 
+<input type="text" id="role" placeholder="Role" />
+<input type="text" id="experience" placeholder="Experience" />
 
+<select id="mode">
+<option value="Technical">Technical</option>
+<option value="HR">HR</option>
+</select>
 
+<button id="startInterview">Start Interview</button>
 
+<hr>
 
-    
+<h2 id="question"></h2>
+<div id="timer"></div>
+
+<textarea id="answer" placeholder="Your answer"></textarea>
+
+<button id="submitAnswer">Submit Answer</button>
+
+<hr>
+
+<div id="feedback"></div>
+
+<hr>
+
+<button id="finishInterview">Finish Interview</button>
+
+<div id="report"></div>
     <script src="script.js"></script>
+
 </body>
 </html>

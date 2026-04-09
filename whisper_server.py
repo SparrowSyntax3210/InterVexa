@@ -9,6 +9,10 @@ app = Flask(__name__)
 
 model = whisper.load_model("base")
 
+@app.route("/")
+def home():
+    return "Whisper Server Running"
+
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
 
@@ -18,7 +22,7 @@ def transcribe():
     file = request.files['audio']
 
     # Save file
-    filepath = "audio.webm"   # <-- change from wav to webm
+    filepath = "audio.webm"   
     file.save(filepath)
 
     # Debug info
