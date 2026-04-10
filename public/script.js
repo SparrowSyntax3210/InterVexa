@@ -1,122 +1,161 @@
-alert("script is ruigs");
+const role = document.getElementById("role");
+const experience = document.getElementById("experience");
+const mode = document.getElementById("mode");
+const stopBtn = document.getElementById("stopBtn");
+const uploadBox = document.getElementById("uploadBox");
+const resumeUpload = document.getElementById("resumeUpload");
+const resumeText = document.getElementById("resumeText");
 
-console.log("Script Loaded");
+const analyzeBtn = document.getElementById("analyzeBtn");
+const startBtn = document.getElementById("startBtn");
+const startInterview = document.getElementById("startInterview");
 
-const BASE_URL = "http://localhost:4000";
+const analysisResult = document.getElementById("analysisResult");
 
-let interviewId;
-let questions = [];
-let currentQuestion = 0;
+let resumeFile = null;
+let projects = [];
+let skills = [];
+let resumeContent = "";
 
-// Upload Resume
-async function uploadResume() {
-  const file = document.getElementById("resume").files[0];
+uploadBox.addEventListener("click", () => {
+  resumeUpload.click();
+});
+
+resumeUpload.addEventListener("change", (e) => {
+  resumeFile = e.target.files[0];
+
+  if (resumeFile) {
+    resumeText.innerText = resumeFile.name;
+  }
+});
+
+analyzeBtn.addEventListener("click", async (e) => {
+  e.stopPropagation();
+
+  if (!resumeFile) return;
+
+  analyzeBtn.innerText = "Analyzing...";
+
+  const result = await analyzeResume(resumeFile);
+
+  role.value = result.role || "";
+  experience.value = result.experience || "";
+
+  projects = result.projects || [];
+  skills = result.skills || [];
+
+  resumeContent = result.resumeText || "";
+
+  renderAnalysis();
+
+  analyzeBtn.innerText = "Analyze Resume";
+});
+
+let mediaRecorder;
+let audioChunks = [];
+
+startBtn.addEventListener("click", async () => {
+  console.log("Start clicked");
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+  });
+
+  mediaRecorder = new MediaRecorder(stream);
+
+  mediaRecorder.ondataavailable = (event) => {
+    audioChunks.push(event.data);
+  };
+
+  mediaRecorder.onstop = sendToWhisper;
+
+  mediaRecorder.start();
+
+  console.log("Recording started...");
+});
+
+stopBtn.addEventListener("click", () => {
+  console.log("Stop clicked");
+  mediaRecorder.stop();
+});
+
+async function sendToWhisper() {
+  console.log("Sending to whisper...");
+
+  const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
 
   const formData = new FormData();
-  formData.append("resume", file);
+  formData.append("audio", audioBlob);
 
-  const res = await fetch(`${BASE_URL}/resume`, {
-    method: "POST",
-    body: formData,
-  });
+  try {
+    const response = await fetch("http://localhost:5000/transcribe", {
+      method: "POST",
+      body: formData,
+    });
 
-  const data = await res.json();
+    const data = await response.json();
 
-  window.resumeData = data;
+    console.log("Speech Text:", data.text);
+  } catch (error) {
+    console.error("Error:", error);
+  }
 
-  console.log(data);
+  audioChunks = [];
 }
 
-// Generate Questions
-async function generateQuestions() {
-  const role = document.getElementById("role").value;
-  const experience = document.getElementById("experience").value;
-  const mode = document.getElementById("mode").value;
+async function analyzeResume(file) {
+  const formData = new FormData();
+  formData.append("file", file);
 
-  const res = await fetch(`${BASE_URL}/generate-questions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      role,
-      experience,
-      mode,
-      resumeText: window.resumeData?.resumeText,
-      projects: window.resumeData?.projects,
-      skills: window.resumeData?.skills,
-    }),
-  });
+  try {
+    const response = await fetch("http://localhost:4000/upload", {
+      method: "POST",
+      body: formData,
+    });
 
-  const data = await res.json();
+    const data = await response.json();
 
-  interviewId = data.interviewId;
-  questions = data.questions;
-
-  showQuestion();
-}
-
-// Show Question
-function showQuestion() {
-  document.getElementById("question").innerText =
-    questions[currentQuestion].question;
-}
-
-// Submit Answer
-async function submitAnswer() {
-  const answer = document.getElementById("answer").value;
-
-  const res = await fetch(`${BASE_URL}/submit-answer`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      interviewId,
-      questionIndex: currentQuestion,
-      answer,
-      timeTaken: 30,
-    }),
-  });
-
-  const data = await res.json();
-
-  document.getElementById("feedback").innerText = data.feedback;
-
-  currentQuestion++;
-
-  if (currentQuestion < questions.length) {
-    showQuestion();
+    return data;
+  } catch (error) {
+    console.error("Analyze error:", error);
+    return {};
   }
 }
 
-// Finish Interview
-async function finishInterview() {
-  const res = await fetch(`${BASE_URL}/finish`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      interviewId,
-    }),
-  });
+function renderAnalysis() {
+  analysisResult.innerHTML = "";
 
-  const data = await res.json();
+  if (projects.length > 0) {
+    analysisResult.innerHTML += `
+<h3>Projects</h3>
+<ul>
+${projects.map((p) => `<li>${p}</li>`).join("")}
+</ul>
+`;
+  }
 
-  document.getElementById("report").innerText =
-    "Final Score: " + data.finalScore;
+  if (skills.length > 0) {
+    analysisResult.innerHTML += `
+<h3>Skills</h3>
+<div>
+${skills.map((s) => `<span class="skill">${s}</span>`).join("")}
+</div>
+`;
+  }
 }
 
-// Event Listeners
-document
-  .getElementById("startInterview")
-  .addEventListener("click", generateQuestions);
+startInterview.addEventListener("click", async () => {
+  startBtn.innerText = "Starting...";
 
-document.getElementById("submitAnswer").addEventListener("click", submitAnswer);
+  const response = await fetch("http://localhost:4000/start-interview", {
+    method: "POST",
+  });
 
-document
-  .getElementById("finishInterview")
-  .addEventListener("click", finishInterview);
+  const data = await response.json();
 
-document.getElementById("ques").addEventListener("click", generateQuestions);
+  questions = data.questions;
+
+  renderQuestions();
+
+  startBtn.innerText = "Start Interview";
+});

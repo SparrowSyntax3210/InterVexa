@@ -37,6 +37,4 @@ const askAi = async (messages) => {
   }
 };
 
-module.exports = {
-  askAi,
-};
+module.exports = { askAi };

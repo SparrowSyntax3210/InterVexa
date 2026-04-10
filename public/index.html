@@ -1,53 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Interview Setup</title>
+
+<link rel="stylesheet" href="style.css">
+
+<!-- Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 </head>
+
 <body>
 
-    <section class="Interview-page"></section>
-    <h1>Interview Page</h1>
-    <div class="ai-speaker"></div>
-    <div class="speech-text"></div>
-    <div class="video-output"></div>
-    <button id="ques">Gerate </button>
-    <button id="speak">Speak Now</button>
-    <div id="transcription"></div>
+<div class="container">
 
-    <input type="file" id="resume" />
+    <!-- Left Section -->
+    <div class="left">
 
-<input type="text" id="role" placeholder="Role" />
-<input type="text" id="experience" placeholder="Experience" />
+        <h1>Start Your AI Interview</h1>
 
-<select id="mode">
-<option value="Technical">Technical</option>
-<option value="HR">HR</option>
-</select>
+        <p>
+            Practice real interview scenarios powered by AI.
+            Improve communication, technical skills, and confidence.
+        </p>
 
-<button id="startInterview">Start Interview</button>
+        <div class="features">
 
-<hr>
+            <div class="feature">
+                <i class="fa-solid fa-user-tie"></i>
+                <span>Choose Role & Experience</span>
+            </div>
 
-<h2 id="question"></h2>
-<div id="timer"></div>
+            <div class="feature">
+                <i class="fa-solid fa-microphone"></i>
+                <span>Smart Voice Interview</span>
+            </div>
 
-<textarea id="answer" placeholder="Your answer"></textarea>
+            <div class="feature">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Performance Analytics</span>
+            </div>
 
-<button id="submitAnswer">Submit Answer</button>
+        </div>
 
-<hr>
+    </div>
 
-<div id="feedback"></div>
+    <!-- Right Section -->
+    <div class="right">
 
-<hr>
+        <h2>Interview Setup</h2>
 
-<button id="finishInterview">Finish Interview</button>
+        <div class="form">
 
-<div id="report"></div>
-    <script src="script.js"></script>
+            <input type="text" id="role" placeholder="Enter Role">
+
+            <input type="text" id="experience" placeholder="Experience (2 years)">
+
+            <select id="mode">
+                <option value="Technical">Technical Interview</option>
+                <option value="HR">HR Interview</option>
+            </select>
+
+            <!-- Upload Resume -->
+
+            <div class="upload-box" id="uploadBox">
+
+                <i class="fa-solid fa-file-arrow-up"></i>
+
+                <input type="file" id="resumeUpload" hidden>
+
+                <p id="resumeText">Click to Upload Resume</p>
+
+                <button id="analyzeBtn" class="analyze-btn">
+                    Analyze Resume
+                </button>
+
+            </div>
+
+            <!-- Resume Analysis -->
+            <div id="analysisResult" class="analysis"></div>
+
+            <button id="startBtn" class="start-btn">
+                Start Speaking
+            </button>
+            <button id="stopBtn">Stop Speaking</button>
+            <button id="startInterview">Start Interview</button>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="script.js"></script>
 
 </body>
 </html>

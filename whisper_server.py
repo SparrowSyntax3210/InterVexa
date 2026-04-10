@@ -21,16 +21,19 @@ def transcribe():
 
     file = request.files['audio']
 
-    # Save file
-    filepath = "audio.webm"   
+    filepath = "audio.webm"
+    wavpath = "audio.wav"
+
     file.save(filepath)
 
-    # Debug info
     print("File saved:", filepath)
     print("File size:", os.path.getsize(filepath))
 
+    # Convert audio
+    os.system(f'ffmpeg -i {filepath} -ar 16000 -ac 1 {wavpath}')
+
     # Transcribe
-    result = model.transcribe(filepath)
+    result = model.transcribe(wavpath)
 
     print("Whisper Result:", result)
     print("Text:", result["text"])
