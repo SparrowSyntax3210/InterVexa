@@ -208,6 +208,37 @@ async function analyzeResume(file) {
   }
 }
 
+document.getElementById("submitAnswer").addEventListener("click", async () => {
+  try {
+    const response = await fetch("http://localhost:4000/interview-feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        send: true,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.feedback) {
+      document.getElementById("feedback").innerText = JSON.stringify(
+        data.feedback,
+        null,
+        2,
+      );
+    }
+
+    if (data.nextQuestion) {
+      document.getElementById("question").innerText =
+        data.nextQuestion.question;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+});
+
 /* ================= Render Analysis ================= */
 
 function renderAnalysis() {

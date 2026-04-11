@@ -180,6 +180,7 @@ app.post("/start-interview", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send("Start error");
+    console.log("Report Dir:", reportDir);
   }
 });
 
@@ -187,9 +188,13 @@ app.post("/start-interview", async (req, res) => {
 
 app.post("/interview-feedback", async (req, res) => {
   try {
-    const transcript = req.body.text;
-
     const files = fs.readdirSync(reportDir);
+
+    if (!files.length) {
+      return res.status(400).json({
+        message: "No report found",
+      });
+    }
 
     const latest = files
       .map((file) => ({
@@ -200,15 +205,38 @@ app.post("/interview-feedback", async (req, res) => {
 
     const reportPath = path.join(reportDir, latest);
 
-    const report = JSON.parse(fs.readFileSync(reportPath));
+    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
 
-    const currentQ = report.questions[report.currentQuestion];
+    console.log("Loaded Report ↓↓↓");
+    console.log(JSON.stringify(report, null, 2));
+
+    /* FIXED INDEX */
+
+    const currentQ = report.questions[report.currentQuestion - 1];
+
+    console.log("Current Question:", currentQ);
 
     if (!currentQ) {
       return res.json({
         message: "Interview Completed",
       });
     }
+
+    /* GET LAST ANSWER */
+
+    const lastAnswer = report.answers[report.answers.length - 1];
+
+    const transcript = lastAnswer?.answer;
+
+    console.log("Transcript:", transcript);
+
+    if (!transcript) {
+      return res.status(400).json({
+        message: "No answer found",
+      });
+    }
+
+    /* AI FEEDBACK */
 
     const messages = [
       {
@@ -236,32 +264,38 @@ Return JSON:
 
     const aiResponse = await askAi(messages);
 
-    let feedback;
+    console.log("AI Raw Response:", aiResponse);
 
     const cleaned = aiResponse
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
 
-    feedback = JSON.parse(cleaned);
+    const feedback = JSON.parse(cleaned);
 
-    report.answers.push({
-      question: currentQ.question,
-      answer: transcript,
-      feedback,
-      time: new Date(),
-    });
+    console.log("Parsed Feedback:", feedback);
+
+    /* UPDATE REPORT */
+
+    lastAnswer.feedback = feedback;
+    lastAnswer.time = new Date();
 
     report.currentQuestion += 1;
 
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+    console.log("Saving to:", reportPath);
+
+    /* SAVE TO SAME FOLDER */
+
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf-8");
+
+    console.log("Report Saved Successfully ✅");
 
     res.json({
       feedback,
       nextQuestion: report.questions[report.currentQuestion] || null,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Feedback Error:", error);
     res.status(500).send("Feedback error");
   }
 });
