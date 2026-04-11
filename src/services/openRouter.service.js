@@ -1,7 +1,8 @@
 const axios = require("axios");
 
-const key =
-  "REMOVED_SECRET";
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const askAi = async (messages) => {
   try {
@@ -17,7 +18,7 @@ const askAi = async (messages) => {
       },
       {
         headers: {
-          Authorization: `Bearer ${key}`,
+          Authorization: `Bearer ${process.env.KEY}`,
           "Content-Type": "application/json",
         },
       },

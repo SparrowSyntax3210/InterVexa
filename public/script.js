@@ -5,17 +5,17 @@ const stopBtn = document.getElementById("stopBtn");
 const uploadBox = document.getElementById("uploadBox");
 const resumeUpload = document.getElementById("resumeUpload");
 const resumeText = document.getElementById("resumeText");
-
 const analyzeBtn = document.getElementById("analyzeBtn");
 const startBtn = document.getElementById("startBtn");
-const startInterview = document.getElementById("startInterview");
-
+const startInterviewBtn = document.getElementById("startInterview");
 const analysisResult = document.getElementById("analysisResult");
 
 let resumeFile = null;
 let projects = [];
 let skills = [];
 let resumeContent = "";
+
+/* ================= Upload Resume ================= */
 
 uploadBox.addEventListener("click", () => {
   resumeUpload.click();
@@ -28,6 +28,8 @@ resumeUpload.addEventListener("change", (e) => {
     resumeText.innerText = resumeFile.name;
   }
 });
+
+/* ================= Analyze Resume ================= */
 
 analyzeBtn.addEventListener("click", async (e) => {
   e.stopPropagation();
@@ -51,17 +53,19 @@ analyzeBtn.addEventListener("click", async (e) => {
   analyzeBtn.innerText = "Analyze Resume";
 });
 
+/* ================= Audio Recording ================= */
+
 let mediaRecorder;
 let audioChunks = [];
 
 startBtn.addEventListener("click", async () => {
-  console.log("Start clicked");
-
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: true,
   });
 
   mediaRecorder = new MediaRecorder(stream);
+
+  audioChunks = [];
 
   mediaRecorder.ondataavailable = (event) => {
     audioChunks.push(event.data);
@@ -75,19 +79,23 @@ startBtn.addEventListener("click", async () => {
 });
 
 stopBtn.addEventListener("click", () => {
-  console.log("Stop clicked");
-  mediaRecorder.stop();
+  if (mediaRecorder) {
+    mediaRecorder.stop();
+    console.log("Recording stopped...");
+  }
 });
 
-async function sendToWhisper() {
-  console.log("Sending to whisper...");
+/* ================= Whisper ================= */
 
+async function sendToWhisper() {
   const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
 
   const formData = new FormData();
   formData.append("audio", audioBlob);
 
   try {
+    console.log("Sending audio to whisper...");
+
     const response = await fetch("http://localhost:5000/transcribe", {
       method: "POST",
       body: formData,
@@ -95,13 +103,93 @@ async function sendToWhisper() {
 
     const data = await response.json();
 
-    console.log("Speech Text:", data.text);
+    console.log("Transcript:", data.text);
+
+    const transcript = data.text;
+
+    await sendFeedback(transcript);
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Whisper Error:", error);
   }
 
   audioChunks = [];
 }
+
+/* ================= Feedback ================= */
+
+async function sendFeedback(transcript) {
+  try {
+    console.log("Sending to feedback API...");
+
+    const feedbackRes = await fetch(
+      "http://localhost:4000/interview-feedback",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: transcript,
+        }),
+      },
+    );
+
+    const feedbackData = await feedbackRes.json();
+
+    console.log("Feedback Data:", feedbackData);
+
+    if (!feedbackData.feedback) {
+      document.getElementById("feedback").innerText = "No feedback received";
+      return;
+    }
+
+    document.getElementById("feedback").innerHTML = `
+<p><b>Communication:</b> ${feedbackData.feedback.communication || "N/A"}</p>
+<p><b>Technical:</b> ${feedbackData.feedback.technical || "N/A"}</p>
+<p><b>Strengths:</b> ${(feedbackData.feedback.strengths || []).join(", ")}</p>
+<p><b>Improvements:</b> ${(feedbackData.feedback.improvements || []).join(", ")}</p>
+<p><b>Overall Score:</b> ${feedbackData.feedback.overallScore || "N/A"}</p>
+`;
+
+    // Next Question
+
+    if (feedbackData.nextQuestion) {
+      document.getElementById("question").innerText =
+        feedbackData.nextQuestion.question;
+    } else {
+      document.getElementById("question").innerText = "Interview Completed 🎉";
+    }
+  } catch (error) {
+    console.error("Feedback Error:", error);
+  }
+}
+
+/* ================= Start Interview ================= */
+
+startInterviewBtn.addEventListener("click", async () => {
+  try {
+    const response = await fetch("http://localhost:4000/start-interview", {
+      method: "POST",
+    });
+
+    const data = await response.json();
+
+    console.log("Interview Started:", data);
+
+    if (!data.question) {
+      document.getElementById("question").innerText = "No question received";
+      return;
+    }
+
+    document.getElementById("question").innerText = data.question.question;
+
+    document.getElementById("feedback").innerHTML = "";
+  } catch (error) {
+    console.error("Start Interview Error:", error);
+  }
+});
+
+/* ================= Analyze Resume API ================= */
 
 async function analyzeResume(file) {
   const formData = new FormData();
@@ -113,14 +201,14 @@ async function analyzeResume(file) {
       body: formData,
     });
 
-    const data = await response.json();
-
-    return data;
+    return await response.json();
   } catch (error) {
     console.error("Analyze error:", error);
     return {};
   }
 }
+
+/* ================= Render Analysis ================= */
 
 function renderAnalysis() {
   analysisResult.innerHTML = "";
@@ -143,19 +231,3 @@ ${skills.map((s) => `<span class="skill">${s}</span>`).join("")}
 `;
   }
 }
-
-startInterview.addEventListener("click", async () => {
-  startBtn.innerText = "Starting...";
-
-  const response = await fetch("http://localhost:4000/start-interview", {
-    method: "POST",
-  });
-
-  const data = await response.json();
-
-  questions = data.questions;
-
-  renderQuestions();
-
-  startBtn.innerText = "Start Interview";
-});

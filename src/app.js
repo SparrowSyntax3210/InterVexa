@@ -4,17 +4,17 @@ const fs = require("fs");
 const cors = require("cors");
 const multer = require("multer");
 const { askAi } = require("./services/openRouter.service");
-const app = express();
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 
-// Middlewares
+const app = express();
+
+/* ======================= MIDDLEWARE ======================= */
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 app.use(express.static(path.join(__dirname, "../public")));
-
-app.set("view engine", "ejs");
 
 /* ======================= FOLDERS ======================= */
 
@@ -49,16 +49,14 @@ async function extractText(filePath) {
       text += content.items.map((item) => item.str).join(" ") + "\n";
     }
 
-    if (!text.trim()) throw new Error("Unreadable PDF");
-
     return text;
   } catch (err) {
-    console.error("PDF Extraction Error:", err);
+    console.error("PDF Error:", err);
     return "";
   }
 }
 
-/* ======================= SKILL EXTRACTION ======================= */
+/* ======================= SKILLS ======================= */
 
 function extractSkills(text) {
   const skills = [
@@ -82,123 +80,23 @@ function extractSkills(text) {
   return skills.filter((skill) => lower.includes(skill));
 }
 
-/* ======================= AI QUESTION GENERATION ======================= */
+/* ======================= QUESTION GENERATION ======================= */
 
 const generateQuestions = async (skills) => {
   const messages = [
     {
       role: "system",
-      content: "You are an interview question generator.",
+      content: "You are interview question generator",
     },
     {
       role: "user",
-      content: `Generate interview questions based on these skills: ${skills.join(
-        ", ",
-      )}
+      content: `
+Generate interview questions based on:
+
+${skills.join(", ")}
 
 Rules:
-- Generate 2 questions per skill
-- Return JSON only
-
-Format:
-[
-{
-"skill":"JavaScript",
-"question":"Explain closures"
-}
-]`,
-    },
-  ];
-
-  const response = await askAi(messages);
-
-  return JSON.parse(response);
-};
-
-/* ======================= ROUTE ======================= */
-
-app.post("/upload", upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).send("No file uploaded");
-    }
-
-    const filePath = req.file.path;
-
-    const text = await extractText(filePath);
-
-    const skills = extractSkills(text);
-
-    console.log("Extracted Skills:", skills);
-
-    const questions = await generateQuestions(skills);
-
-    const report = {
-      file: req.file.filename,
-      skills,
-      questions,
-      createdAt: new Date(),
-    };
-
-    const reportPath = path.join(reportDir, `${Date.now()}-report.json`);
-
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-
-    res.json({
-      message: "Analysis Complete",
-      skills,
-      questions,
-      report,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error uploading file");
-  }
-});
-
-app.post("/start-interview", async (req, res) => {
-  try {
-    const reportDir = path.join(process.cwd(), "reports");
-
-    const files = fs.readdirSync(reportDir);
-
-    if (!files.length) {
-      return res.status(400).json({
-        message: "No resume analyzed yet",
-      });
-    }
-
-    // Get latest report
-    const latestReport = files
-      .map((file) => ({
-        name: file,
-        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
-      }))
-      .sort((a, b) => b.time - a.time)[0].name;
-
-    const reportPath = path.join(reportDir, latestReport);
-
-    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
-
-    const skills = report.skills;
-
-    if (!skills || skills.length === 0) {
-      return res.status(400).json({
-        message: "No skills found in report",
-      });
-    }
-
-    const messages = [
-      {
-        role: "system",
-        content: "You are a technical interviewer.",
-      },
-      {
-        role: "user",
-        content: `Generate interview questions based on these skills: ${skills.join(", ")}
-
-Rules:
-- Generate 2 questions per skill
+- Generate only 1 interview question 
 - Return JSON only
 
 Format:
@@ -207,55 +105,165 @@ Format:
 "skill":"React",
 "question":"Explain Virtual DOM"
 }
-]`,
-      },
-    ];
+]
+`,
+    },
+  ];
 
-    const aiResponse = await askAi(messages);
+  const response = await askAi(messages);
 
-    let questions;
+  const cleaned = response
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
 
-    try {
-      questions = JSON.parse(aiResponse);
-    } catch {
-      questions = [];
-    }
+  return JSON.parse(cleaned);
+};
+
+/* ======================= UPLOAD ROUTE ======================= */
+
+app.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    const filePath = req.file.path;
+
+    const text = await extractText(filePath);
+
+    const skills = extractSkills(text);
+
+    const questions = await generateQuestions(skills);
+
+    const report = {
+      file: req.file.filename,
+      skills,
+      questions,
+      createdAt: new Date(),
+      currentQuestion: 0,
+      answers: [],
+    };
+
+    const reportPath = path.join(reportDir, `${Date.now()}-report.json`);
+
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
     res.json({
-      message: "Interview Started",
+      message: "Resume Analyzed",
       skills,
       questions,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      message: "Error starting interview",
-    });
+    res.status(500).send("Upload error");
   }
 });
 
-async function sendToWhisper() {
-  const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+/* ======================= START INTERVIEW ======================= */
 
-  const formData = new FormData();
-  formData.append("audio", audioBlob);
-
+app.post("/start-interview", async (req, res) => {
   try {
-    const response = await fetch("http://localhost:5000/transcribe", {
-      method: "POST",
-      body: formData,
+    const files = fs.readdirSync(reportDir);
+
+    const latest = files
+      .map((file) => ({
+        name: file,
+        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
+      }))
+      .sort((a, b) => b.time - a.time)[0].name;
+
+    const reportPath = path.join(reportDir, latest);
+
+    const report = JSON.parse(fs.readFileSync(reportPath));
+
+    res.json({
+      question: report.questions[0],
+      total: report.questions.length,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Start error");
+  }
+});
+
+/* ======================= FEEDBACK ======================= */
+
+app.post("/interview-feedback", async (req, res) => {
+  try {
+    const transcript = req.body.text;
+
+    const files = fs.readdirSync(reportDir);
+
+    const latest = files
+      .map((file) => ({
+        name: file,
+        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
+      }))
+      .sort((a, b) => b.time - a.time)[0].name;
+
+    const reportPath = path.join(reportDir, latest);
+
+    const report = JSON.parse(fs.readFileSync(reportPath));
+
+    const currentQ = report.questions[report.currentQuestion];
+
+    if (!currentQ) {
+      return res.json({
+        message: "Interview Completed",
+      });
+    }
+
+    const messages = [
+      {
+        role: "system",
+        content: "You are technical interviewer",
+      },
+      {
+        role: "user",
+        content: `
+Question:
+${currentQ.question}
+
+Answer:
+${transcript}
+
+Return JSON:
+{
+"score":,
+"strengths":"",
+"improvements":""
+}
+`,
+      },
+    ];
+
+    const aiResponse = await askAi(messages);
+
+    let feedback;
+
+    const cleaned = aiResponse
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    feedback = JSON.parse(cleaned);
+
+    report.answers.push({
+      question: currentQ.question,
+      answer: transcript,
+      feedback,
+      time: new Date(),
     });
 
-    const data = await response.json();
+    report.currentQuestion += 1;
 
-    console.log("User Speech:", data.text);
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
-    handleUserAnswer(data.text);
+    res.json({
+      feedback,
+      nextQuestion: report.questions[report.currentQuestion] || null,
+    });
   } catch (error) {
-    console.error("Speech error:", error);
+    console.error(error);
+    res.status(500).send("Feedback error");
   }
-
-  audioChunks = [];
-}
+});
 
 module.exports = app;

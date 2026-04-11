@@ -1,11 +1,16 @@
 const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const connectDB = async () => {
   try {
-    await mongoose.connect("mongodb://sparrowsyntax3210_db_user:Codeitup3210@ac-jikz1zm-shard-00-00.qis5opd.mongodb.net:27017,ac-jikz1zm-shard-00-01.qis5opd.mongodb.net:27017,ac-jikz1zm-shard-00-02.qis5opd.mongodb.net:27017/?ssl=true&replicaSet=atlas-tuoxj7-shard-0&authSource=admin&appName=InterVexa");
-    console.log("DB connected Succesfully");
+    await mongoose.connect(process.env.MONGODB_URL);
+
+    console.log("DB connected successfully");
   } catch (err) {
-    console.log(err);
+    console.error("DB Connection Error:", err);
+    process.exit(1);
   }
 };
 
