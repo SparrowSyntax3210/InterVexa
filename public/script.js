@@ -115,6 +115,34 @@ async function sendToWhisper() {
   audioChunks = [];
 }
 
+document.getElementById("video").addEventListener("click", startTracking);
+
+async function startTracking() {
+  const formData = new FormData();
+
+  const response = await fetch("http://localhost:6000/video", {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  console.log("Confidence Score:", data.confidence_score);
+}
+
+document.getElementById("startBtn").addEventListener("click", startInterview);
+
+async function startInterview() {
+  const response = await fetch("http://localhost:5000/transcribe", {
+    method: "POST",
+  });
+
+  const data = await response.json();
+
+  document.getElementById("score").innerText =
+    "Confidence Score: " + data.confidence_score;
+}
+
 /* ================= Feedback ================= */
 
 async function sendFeedback(transcript) {
