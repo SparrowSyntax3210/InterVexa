@@ -13,8 +13,6 @@ from flask_cors import CORS
 os.environ["PATH"] += os.pathsep + r"C:\ffmpeg\bin"
 
 app = Flask(__name__)
-
-app = Flask(__name__)
 CORS(app)
 
 # Whisper Model
@@ -48,7 +46,6 @@ PITCH_THRESHOLD = 15
 def start_tracking():
 
     cap = cv2.VideoCapture(0)
-
     focused_frames = 0
     total_frames = 0
 

@@ -1,3 +1,30 @@
+/* ================= AI Voice Engine ================= */
+
+function askAIVoice(text) {
+  const synth = window.speechSynthesis;
+  synth.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+
+  const voices = synth.getVoices();
+  utterance.voice =
+    voices.find((v) => v.name.includes("Zira") || v.name.includes("Female")) ||
+    voices[0];
+
+  utterance.rate = 0.9;
+  synth.speak(utterance);
+}
+
+// Load voices properly
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => {
+    console.log("Voices Loaded");
+  };
+}
+
+/* ================= DOM ================= */
+
 const role = document.getElementById("role");
 const experience = document.getElementById("experience");
 const mode = document.getElementById("mode");
@@ -9,6 +36,7 @@ const analyzeBtn = document.getElementById("analyzeBtn");
 const startBtn = document.getElementById("startBtn");
 const startInterviewBtn = document.getElementById("startInterview");
 const analysisResult = document.getElementById("analysisResult");
+const nextQuestion = document.getElementById("nextquestion");
 
 let resumeFile = null;
 let projects = [];
@@ -31,9 +59,7 @@ resumeUpload.addEventListener("change", (e) => {
 
 /* ================= Analyze Resume ================= */
 
-analyzeBtn.addEventListener("click", async (e) => {
-  e.stopPropagation();
-
+analyzeBtn.addEventListener("click", async () => {
   if (!resumeFile) return;
 
   analyzeBtn.innerText = "Analyzing...";
@@ -76,14 +102,37 @@ startBtn.addEventListener("click", async () => {
   mediaRecorder.start();
 
   console.log("Recording started...");
+
+  startBtn.innerText = "Recording";
 });
 
 stopBtn.addEventListener("click", () => {
   if (mediaRecorder) {
     mediaRecorder.stop();
-    console.log("Recording stopped...");
   }
+  startBtn.innerText = "Recording Completed";
 });
+
+document.getElementById("video").addEventListener("click", () => {
+  console.log("Button clicked");
+  startTracking();
+});
+
+async function startTracking() {
+  console.log("Sending request...");
+
+  try {
+    const response = await fetch("http://localhost:6000/video", {
+      method: "POST",
+    });
+
+    const data = await response.json();
+
+    console.log("Confidence Score:", data.confidence_score);
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
 
 /* ================= Whisper ================= */
 
@@ -94,8 +143,6 @@ async function sendToWhisper() {
   formData.append("audio", audioBlob);
 
   try {
-    console.log("Sending audio to whisper...");
-
     const response = await fetch("http://localhost:5000/transcribe", {
       method: "POST",
       body: formData,
@@ -103,9 +150,9 @@ async function sendToWhisper() {
 
     const data = await response.json();
 
-    console.log("Transcript:", data.text);
-
     const transcript = data.text;
+
+    console.log("Transcript:", transcript);
 
     await sendFeedback(transcript);
   } catch (error) {
@@ -115,77 +162,44 @@ async function sendToWhisper() {
   audioChunks = [];
 }
 
-document.getElementById("video").addEventListener("click", startTracking);
-
-async function startTracking() {
-  const formData = new FormData();
-
-  const response = await fetch("http://localhost:6000/video", {
-    method: "POST",
-    body: formData,
-  });
-
-  const data = await response.json();
-
-  console.log("Confidence Score:", data.confidence_score);
-}
-
-document.getElementById("startBtn").addEventListener("click", startInterview);
-
-async function startInterview() {
-  const response = await fetch("http://localhost:5000/transcribe", {
-    method: "POST",
-  });
-
-  const data = await response.json();
-
-  document.getElementById("score").innerText =
-    "Confidence Score: " + data.confidence_score;
-}
-
 /* ================= Feedback ================= */
 
 async function sendFeedback(transcript) {
   try {
-    console.log("Sending to feedback API...");
-
-    const feedbackRes = await fetch(
-      "http://localhost:4000/interview-feedback",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: transcript,
-        }),
+    const response = await fetch("http://localhost:4000/interview-feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        text: transcript,
+      }),
+    });
 
-    const feedbackData = await feedbackRes.json();
+    const data = await response.json();
 
-    console.log("Feedback Data:", feedbackData);
-
-    if (!feedbackData.feedback) {
+    if (!data.feedback) {
       document.getElementById("feedback").innerText = "No feedback received";
       return;
     }
 
     document.getElementById("feedback").innerHTML = `
-<p><b>Communication:</b> ${feedbackData.feedback.communication || "N/A"}</p>
-<p><b>Technical:</b> ${feedbackData.feedback.technical || "N/A"}</p>
-<p><b>Strengths:</b> ${(feedbackData.feedback.strengths || []).join(", ")}</p>
-<p><b>Improvements:</b> ${(feedbackData.feedback.improvements || []).join(", ")}</p>
-<p><b>Overall Score:</b> ${feedbackData.feedback.overallScore || "N/A"}</p>
+<p><b>Communication:</b> ${data.feedback.communication || "N/A"}</p>
+<p><b>Technical:</b> ${data.feedback.technical || "N/A"}</p>
+<p><b>Strengths:</b> ${(data.feedback.strengths || []).join(", ")}</p>
+<p><b>Improvements:</b> ${(data.feedback.improvements || []).join(", ")}</p>
+<p><b>Overall Score:</b> ${data.feedback.overallScore || "N/A"}</p>
 `;
 
-    // Next Question
-
-    if (feedbackData.nextQuestion) {
+    if (data.nextQuestion) {
       document.getElementById("question").innerText =
-        feedbackData.nextQuestion.question;
+        data.nextQuestion.question;
+
+      askAIVoice(data.nextQuestion.question);
     } else {
       document.getElementById("question").innerText = "Interview Completed 🎉";
+
+      askAIVoice("Interview completed. Great job!");
     }
   } catch (error) {
     console.error("Feedback Error:", error);
@@ -202,41 +216,22 @@ startInterviewBtn.addEventListener("click", async () => {
 
     const data = await response.json();
 
-    console.log("Interview Started:", data);
-
-    if (!data.question) {
-      document.getElementById("question").innerText = "No question received";
-      return;
-    }
-
     document.getElementById("question").innerText = data.question.question;
 
-    document.getElementById("feedback").innerHTML = "";
+    askAIVoice(data.question.question);
   } catch (error) {
-    console.error("Start Interview Error:", error);
+    console.log("Fallback triggered");
+
+    const fallback = "Hello, I am ready to interview you. Let's begin.";
+
+    document.getElementById("question").innerText = fallback;
+
+    askAIVoice(fallback);
   }
 });
 
-/* ================= Analyze Resume API ================= */
+/* ================= Submit Answer ================= */
 
-async function analyzeResume(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  try {
-    const response = await fetch("http://localhost:4000/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    return await response.json();
-  } catch (error) {
-    console.error("Analyze error:", error);
-    return {};
-  }
-}
-
-// Submit Answer
 document.getElementById("submitAnswer").addEventListener("click", async () => {
   try {
     const response = await fetch("http://localhost:4000/interview-feedback", {
@@ -251,7 +246,6 @@ document.getElementById("submitAnswer").addEventListener("click", async () => {
 
     const data = await response.json();
 
-    // Show feedback
     if (data.feedback) {
       document.getElementById("feedback").innerText = JSON.stringify(
         data.feedback,
@@ -259,38 +253,63 @@ document.getElementById("submitAnswer").addEventListener("click", async () => {
         2,
       );
     }
+
+    if (data.nextQuestion) {
+      document.getElementById("question").innerText =
+        data.nextQuestion.question;
+
+      askAIVoice(data.nextQuestion.question);
+    }
   } catch (error) {
-    console.error("Submit Error:", error);
+    console.error(error);
   }
 });
 
-// Next Question
-const nextQuestion = document.getElementById("nextquestion");
+/* ================= Next Question ================= */
 
 nextQuestion.addEventListener("click", async () => {
   try {
     const response = await fetch("http://localhost:4000/nextquestion", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
     });
+
     const data = await response.json();
 
-    console.log(data);
-
-    // Show next question
     if (data.question) {
       document.getElementById("question").innerText = data.question.question;
+
+      askAIVoice(data.question.question);
     }
 
     if (data.message) {
       document.getElementById("question").innerText = data.message;
+
+      askAIVoice(data.message);
     }
   } catch (error) {
     console.error("Next Question Error:", error);
   }
 });
+
+/* ================= Analyze Resume ================= */
+
+async function analyzeResume(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await fetch("http://localhost:4000/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    return {};
+  }
+}
+
 /* ================= Render Analysis ================= */
 
 function renderAnalysis() {
