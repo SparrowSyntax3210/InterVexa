@@ -96,7 +96,7 @@ Generate interview questions based on:
 ${skills.join(", ")}
 
 Rules:
-- Generate only 1 interview question 
+- Generate only 3 interview question 
 - Return JSON only
 
 Format:
@@ -173,14 +173,52 @@ app.post("/start-interview", async (req, res) => {
 
     const report = JSON.parse(fs.readFileSync(reportPath));
 
+    questions = report.questions;
+    currentQuestionIndex = 0;
+
     res.json({
-      question: report.questions[0],
-      total: report.questions.length,
+      question: questions[0],
+      total: questions.length,
     });
   } catch (err) {
     console.error(err);
     res.status(500).send("Start error");
-    console.log("Report Dir:", reportDir);
+  }
+});
+
+app.post("/nextquestion", (req, res) => {
+  try {
+    const files = fs.readdirSync(reportDir);
+
+    const latest = files
+      .map((file) => ({
+        name: file,
+        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
+      }))
+      .sort((a, b) => b.time - a.time)[0].name;
+
+    const reportPath = path.join(reportDir, latest);
+
+    const report = JSON.parse(fs.readFileSync(reportPath));
+
+    report.currentQuestion += 1;
+
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+
+    if (report.currentQuestion < report.questions.length) {
+      res.json({
+        question: report.questions[report.currentQuestion],
+        index: report.currentQuestion,
+      });
+    } else {
+      report.currentQuestionIndex = 0;
+      res.json({
+        message: "Interview Completed",
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Next Question Error");
   }
 });
 

@@ -208,6 +208,7 @@ async function analyzeResume(file) {
   }
 }
 
+// Submit Answer
 document.getElementById("submitAnswer").addEventListener("click", async () => {
   try {
     const response = await fetch("http://localhost:4000/interview-feedback", {
@@ -222,6 +223,7 @@ document.getElementById("submitAnswer").addEventListener("click", async () => {
 
     const data = await response.json();
 
+    // Show feedback
     if (data.feedback) {
       document.getElementById("feedback").innerText = JSON.stringify(
         data.feedback,
@@ -229,16 +231,38 @@ document.getElementById("submitAnswer").addEventListener("click", async () => {
         2,
       );
     }
-
-    if (data.nextQuestion) {
-      document.getElementById("question").innerText =
-        data.nextQuestion.question;
-    }
   } catch (error) {
-    console.error(error);
+    console.error("Submit Error:", error);
   }
 });
 
+// Next Question
+const nextQuestion = document.getElementById("nextquestion");
+
+nextQuestion.addEventListener("click", async () => {
+  try {
+    const response = await fetch("http://localhost:4000/nextquestion", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await response.json();
+
+    console.log(data);
+
+    // Show next question
+    if (data.question) {
+      document.getElementById("question").innerText = data.question.question;
+    }
+
+    if (data.message) {
+      document.getElementById("question").innerText = data.message;
+    }
+  } catch (error) {
+    console.error("Next Question Error:", error);
+  }
+});
 /* ================= Render Analysis ================= */
 
 function renderAnalysis() {
