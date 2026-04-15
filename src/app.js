@@ -5,7 +5,7 @@ const cors = require("cors");
 const multer = require("multer");
 const { askAi } = require("./services/openRouter.service");
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
-
+const User = require("../db/models/User");
 const app = express();
 
 /* ======================= MIDDLEWARE ======================= */
@@ -55,6 +55,20 @@ async function extractText(filePath) {
     return "";
   }
 }
+
+app.post("/signup", async (req, res) => {
+  const { username, email, password } = req.body;
+
+  const newUser = new User({
+    username,
+    email,
+    password,
+  });
+
+  await newUser.save();
+
+  res.send("User Created");
+});
 
 /* ======================= UPLOAD ROUTE ======================= */
 

@@ -15,31 +15,33 @@
       <h2>Sign up</h2>
       <p class="subtitle">Start your 7-day free trial.</p>
 
-      <form>
-        <div class="input-group">
-          <input type="text" required>
-          <label>Name*</label>
-        </div>
+      <form method="POST" action="/signup">
+  <div class="input-group">
+    <input type="text" name="username" required>
+    <label>Name*</label>
+  </div>
 
-        <div class="input-group">
-          <input type="email" required>
-          <label>Email*</label>
-        </div>
+  <div class="input-group">
+    <input type="email" name="email" required>
+    <label>Email*</label>
+  </div>
 
-        <div class="input-group">
-          <input type="password" required>
-          <label>Password*</label>
-        </div>
-        <small>Must be at least 9 characters.</small>
+  <div class="input-group">
+    <input type="password" name="password" required>
+    <label>Password*</label>
+  </div>
 
-        <button class="primary-btn">Create account</button>
-      </form>
+  <small>Must be at least 9 characters.</small>
+
+  <button class="primary-btn">Create account</button>
+</form>
 
       <div class="divider">OR</div>
 
       <div class="social-buttons">
         <button class="google">Sign up with Google</button>
         <button class="apple">Sign up with Apple</button>
+        <p>Already a User</p><a href="http://localhost:4000/login.html">Login</a>
       </div>
     </div>
   </div>

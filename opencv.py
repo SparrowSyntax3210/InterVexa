@@ -3,10 +3,9 @@ import cv2
 import time
 import numpy as np
 import math
-from flask import Flask, jsonify
+from flask import Flask, jsonify, Response
 import whisper
 import os
-import threading
 from flask_cors import CORS
 
 # FFmpeg Path
@@ -39,7 +38,7 @@ options = FaceLandmarkerOptions(
 detector = FaceLandmarker.create_from_options(options)
 
 # -------------------------------
-# Sensitivity Settings
+# Settings
 # -------------------------------
 
 H_GAZE_SENSITIVITY = 0.07
@@ -48,28 +47,32 @@ YAW_THRESHOLD = 15
 PITCH_THRESHOLD = 15
 
 confidence_score = 0
+is_tracking = False
 
 
 # -------------------------------
-# Video Tracking Function
+# Video Generator
 # -------------------------------
 
-def video_tracking():
+def generate_frames():
 
     global confidence_score
+    global is_tracking
 
     cap = cv2.VideoCapture(0)
 
     focused_frames = 0
     total_frames = 0
 
+    is_tracking = True
+
     print("InterVexa Started...")
 
-    while cap.isOpened():
+    while is_tracking:
 
-        ret, frame = cap.read()
+        success, frame = cap.read()
 
-        if not ret:
+        if not success:
             break
 
         frame = cv2.flip(frame, 1)
@@ -102,7 +105,7 @@ def video_tracking():
                 -matrix[1][2]
             ) * (180 / math.pi)
 
-            # Eye Gaze
+            # Eye Tracking
 
             l_left = landmarks[33]
             l_right = landmarks[133]
@@ -129,8 +132,7 @@ def video_tracking():
             )
 
             head_focused = (
-                abs(yaw) < YAW_THRESHOLD
-                and
+                abs(yaw) < YAW_THRESHOLD and
                 abs(pitch) < PITCH_THRESHOLD
             )
 
@@ -171,48 +173,62 @@ def video_tracking():
                 2
             )
 
-        cv2.imshow(
-            "InterVexa AI Interview",
-            frame
+        # Encode frame
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+
+        yield (
+            b'--frame\r\n'
+            b'Content-Type: image/jpeg\r\n\r\n' +
+            frame +
+            b'\r\n'
         )
 
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
-
     cap.release()
-    cv2.destroyAllWindows()
 
     if total_frames > 0:
-        confidence_score = (focused_frames / total_frames) * 100
+        confidence_score = (
+            focused_frames / total_frames
+        ) * 100
 
     print("Confidence Score:", confidence_score)
 
 
 # -------------------------------
-# Start Video Route
+# Start Video
 # -------------------------------
 
-@app.route("/video", methods=["POST"])
-def start_video():
+@app.route("/video")
+def video_feed():
 
-    print("Video API Called")
-
-    thread = threading.Thread(
-        target=video_tracking
+    return Response(
+        generate_frames(),
+        mimetype="multipart/x-mixed-replace; boundary=frame"
     )
 
-    thread.start()
+
+# -------------------------------
+# Stop Video
+# -------------------------------
+
+@app.route("/stop-video", methods=["POST"])
+def stop_video():
+
+    global is_tracking
+    is_tracking = False
+
+    print("Video Stopped")
 
     return jsonify({
-        "message": "Video tracking started"
+        "message": "Video stopped"
     })
 
 
 # -------------------------------
-# Get Score Route
+# Confidence Score
 # -------------------------------
 
-@app.route("/confidence", methods=["GET"])
+@app.route("/confidence")
 def get_score():
 
     return jsonify({

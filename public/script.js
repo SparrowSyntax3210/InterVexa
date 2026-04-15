@@ -144,20 +144,31 @@ stopBtn.addEventListener("click", () => {
   }, 300);
 });
 
-const video = document.getElementById("video");
+// Start Video
+document.getElementById("video").addEventListener("click", () => {
+  document.getElementById("videoStream").src = "http://localhost:8000/video";
+});
 
-video.addEventListener("click", startTracking);
-async function startTracking() {
-  try {
-    await fetch("http://localhost:8000/video", {
-      method: "POST",
-    });
+// Stop Video
+document.getElementById("stopVideo").addEventListener("click", async () => {
+  await fetch("http://localhost:8000/stop-video", {
+    method: "POST",
+  });
 
-    console.log("Video Started");
-  } catch (error) {
-    console.error("Error:", error);
-  }
+  document.getElementById("videoStream").src = "";
+
+  getScore();
+});
+
+// Get Confidence Score
+async function getScore() {
+  const res = await fetch("http://localhost:8000/confidence");
+
+  const data = await res.json();
+
+  console.log("Confidence Score:", data.confidence_score);
 }
+
 /* ================= Whisper ================= */
 async function sendToWhisper() {
   const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
