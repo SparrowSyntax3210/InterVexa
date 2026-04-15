@@ -49,6 +49,7 @@ uploadBox.addEventListener("click", () => {
   resumeUpload.click();
 });
 
+/* FIX HERE → change instead of click */
 resumeUpload.addEventListener("change", (e) => {
   resumeFile = e.target.files[0];
 
@@ -57,26 +58,51 @@ resumeUpload.addEventListener("change", (e) => {
   }
 });
 
+/* ================= Interview Form ================= */
+
+document
+  .getElementById("interviewForm")
+  .addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const role = document.getElementById("role").value;
+    const experience = document.getElementById("experience").value;
+    const mode = document.getElementById("mode").value;
+
+    await fetch("http://localhost:4000/form", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        role,
+        experience,
+        mode,
+      }),
+    });
+  });
+
+uploadBox.addEventListener("click", (e) => {
+  if (e.target.id !== "analyzeBtn") {
+    resumeUpload.click();
+  }
+});
+
 /* ================= Analyze Resume ================= */
 
-analyzeBtn.addEventListener("click", async () => {
-  if (!resumeFile) return;
+analyzeBtn.addEventListener("click", async (e) => {
+  e.stopPropagation(); // ✅ Prevent upload popup
+
+  if (!resumeFile) {
+    alert("Please upload resume first");
+    return;
+  }
 
   analyzeBtn.innerText = "Analyzing...";
 
   const result = await analyzeResume(resumeFile);
 
-  role.value = result.role || "";
-  experience.value = result.experience || "";
-
-  projects = result.projects || [];
-  skills = result.skills || [];
-
-  resumeContent = result.resumeText || "";
-
-  renderAnalysis();
-
-  analyzeBtn.innerText = "Analyze Resume";
+  analyzeBtn.innerText = "Analyzed ✅";
 });
 
 /* ================= Audio Recording ================= */
@@ -118,8 +144,7 @@ stopBtn.addEventListener("click", () => {
   }, 300);
 });
 
-const video = document.getElementById("video");
-document.addEventListener("click", startTracking);
+document.getElementById("video").addEventListener("click", startTracking);
 
 async function startTracking() {
   try {
@@ -292,17 +317,27 @@ async function analyzeResume(file) {
   const formData = new FormData();
   formData.append("file", file);
 
-  try {
-    const response = await fetch("http://localhost:4000/upload", {
-      method: "POST",
-      body: formData,
-    });
+  const response = await fetch("http://localhost:4000/upload", {
+    method: "POST",
+    body: formData,
+  });
 
-    return await response.json();
-  } catch (error) {
-    console.error(error);
-    return {};
-  }
+  const data = await response.json();
+
+  console.log(data);
+
+  /* Show Skills on UI */
+  const analysisResult = document.getElementById("analysisResult");
+
+  analysisResult.innerHTML = `
+    <h3>Resume Analysis</h3>
+    <p><strong>Skills Found:</strong></p>
+    <div class="skills">
+      ${data.skills.map((skill) => `<span class="skill">${skill}</span>`).join("")}
+    </div>
+  `;
+
+  return data;
 }
 
 /* ================= Render Analysis ================= */
