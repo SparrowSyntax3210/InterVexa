@@ -8,296 +8,146 @@
 
 <link rel="stylesheet" href="style.css">
 
-<!-- Icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
 </head>
 
 <body>
 
- <div class="loader-container" aria-hidden="true">
-        <h1 data-title="LexivaRank" class="loader-text-fill">LexivaRank</h1>
+<!-- ================= HEADER ================= -->
+<header>
+    <div class="logo">InterVexa</div>
+    <nav>
+        <a href="#">Enterprise</a>
+        <a href="#">Pricing</a>
+        <a href="#">Docs</a>
+        <a href="#">FAQ's</a>
+    </nav>
+    <div class="auth">
+        <button class="login">Log In</button>
+        <button class="signup">Sign Up</button>
     </div>
+</header>
 
-    <div id="smooth-wrapper">
-        <div id="smooth-content">
+<!-- ================= HERO ================= -->
+<section class="hero">
+    <span class="tag">+ Introduction</span>
+    <h1>Interview Agent<br>AI Interview Agent</h1>
+    <p>Practice , Analyze , Get Hired</p>
+    <a href="http://localhost:4000/login.html">
+        <button class="cta">Get Started →</button>
+    </a>
+</section>
 
-            <!-- HERO -->
-            <section class="page1">
-                <nav class="nav">
-                    <img src="./assets/logo.png" alt="LexivaRank logo" />
-
-                    <div class="nav-part2">
-                        <h4><a href="#">Home</a></h4>
-                        <h4><a href="#">Work</a></h4>
-                        <h4><a href="#about">About</a></h4>
-                        <h4><a href="#">Contact</a></h4>
-                        <div id="profileCircle" class="profile hidden">
-                            <div style="background-color: white;height: 30px;width: 30px;" class="avatar">
-                                <div class="dropdown">
-                                    <a href="/logout">Logout</a>
-                                </div>
-                            </div>
-                </nav>
-
-                <div class="hero-video">
-                    <video src="./assets/background.mp4" autoplay loop muted playsinline></video>
-                </div>
-
-                <div class="hero-section">
-                    <p class="floating text1">AI Resume Optimization Platform</p>
-                    <p class="floating text2">Write Smarter. Rank Higher. Get Hired.</p>
-
-                    <button id="getStartedBtn" >
-                        <span class="fill"></span>
-                        <span class="label">
-                            <a href="http://localhost:4000/signup.html">Get Started</a>
-                        </span>
-                    </button>
-                </div>
-            </section>
-
-
-
-<!-- ================= Cards Section ================= -->
-
+<!-- ================= CARDS ================= -->
 <section class="cards">
 
-<div class="card">
-<h3>Integrations</h3>
-<p>
-Boost productivity with GitHub, Jira, Zendesk, AWS, Slack, 
-and Dropbox integrations in one platform.
-</p>
-</div>
+    <div class="card">
+        <h3>Integrations</h3>
+        <p>Boost productivity with GitHub, Jira, Zendesk, AWS, Slack, Dropbox.</p>
+    </div>
 
-<div class="card">
-<h3>Database Structure</h3>
-<p>
-Streamline efficiency with integrated database structures 
-for seamless data organization and management.
-</p>
-</div>
+    <div class="card">
+        <h3>Database Structure</h3>
+        <p>Streamline efficiency with integrated database systems.</p>
+    </div>
 
-<div class="card">
-<h3>Security</h3>
-<p>
-Strengthen protection with integrated security for seamless 
-threat detection and response.
-</p>
-</div>
+    <div class="card">
+        <h3>Security</h3>
+        <p>Strengthen protection with integrated security systems.</p>
+    </div>
 
 </section>
 
-
-<!-- ================= Footer ================= -->
-
-<footer>
-<p>© 2024 InterVexa. All rights reserved</p>
-</footer>
-
-
-<!-- ================= Main Container ================= -->
-
+<!-- ================= MAIN INTERVIEW LAYOUT ================= -->
 <div class="container">
 
+    <!-- LEFT SIDE -->
+    <div class="left">
 
-<!-- ================= Left Section ================= -->
+        <h2>Interview Setup</h2>
 
-<div class="left">
+        <div class="upload-box" id="uploadBox">
+            <i class="fa-solid fa-file-arrow-up"></i>
+            <input type="file" id="resumeUpload" hidden>
+            <p id="resumeText">Click to Upload Resume</p>
 
-<h1>Start Your AI Interview</h1>
+            <button type="button" id="analyzeBtn">
+                Analyze Resume
+            </button>
+        </div>
 
-<p>
-Practice real interview scenarios powered by AI.
-Improve communication, technical skills, and confidence.
-</p>
+        <div id="analysisResult"></div>
 
+        <form id="interviewForm">
 
-<div class="features">
+            <input type="text" id="role" placeholder="Enter Role">
+            <input type="text" id="experience" placeholder="Experience (2 years)">
+            <input type="number" id="Number" placeholder="Enter Number of Ques">
+            <select id="mode">
+                <option value="Technical">Technical Interview</option>
+                <option value="HR">HR Interview</option>
+            </select>
 
-<div class="feature">
-<i class="fa-solid fa-user-tie"></i>
-<span>Choose Role & Experience</span>
-</div>
+            <button type="submit">Generate Question</button>
 
-<div class="feature">
-<i class="fa-solid fa-microphone"></i>
-<span>Smart Voice Interview</span>
-</div>
+        </form>
 
-<div class="feature">
-<i class="fa-solid fa-chart-line"></i>
-<span>Performance Analytics</span>
-</div>
+    </div>
 
-</div>
+    <!-- RIGHT SIDE -->
+    <div class="right">
 
+        <div class="interview-section">
 
-<!-- AI Video -->
+            <h1>AI Mock Interview</h1>
 
-<div id="assests-video">
-<video 
-src="./assets/male-ai.mp4"
-width="500"
-height="500"
-loop
-autoplay
-muted>
-</video>
-</div>
+            <h2>Question</h2>
 
-</div>
+            <div id="questionBox">
+                <p id="question">Click Start Interview</p>
+            </div>
 
+            <h2>Answer</h2>
 
+            <div id="AnswerBox">
+                <p id="Answer">Click Start Interview</p>
+            </div>
 
-<!-- ================= Right Section ================= -->
+            <h2>Feedback</h2>
 
-<div class="right">
+            <div id="feedback"></div>
+            <div class="video-wrapper">
 
-<h2>Interview Setup</h2>
+    <!-- AI Video -->
+    <video src="./assets/male-ai.mp4" autoplay loop width="200" height="200"></video>
 
-
-<!-- Resume Upload -->
-
-<div class="upload-box" id="uploadBox">
-
-<i class="fa-solid fa-file-arrow-up"></i>
-
-<input type="file" id="resumeUpload" hidden>
-
-<p id="resumeText">Click to Upload Resume</p>
-
-<button type="button" id="analyzeBtn" class="analyze-btn">
-Analyze Resume
-</button>
+    <!-- Live Stream -->
+    <img id="videoStream" width="200" height="200">
 
 </div>
 
+        </div>
 
-<!-- Resume Analysis -->
-
-<div id="analysisResult" class="analysis"></div>
-
-
-<!-- Interview Form -->
-
-<form id="interviewForm">
-
-<input 
-type="text" 
-id="role" 
-placeholder="Enter Role"
->
-
-<input 
-type="text" 
-id="experience" 
-placeholder="Experience (2 years)"
->
-
-<input 
-type="number" 
-id="Number" 
-placeholder="Enter Number of Questions"
->
-
-<select id="mode">
-<option value="Technical">Technical Interview</option>
-<option value="HR">HR Interview</option>
-</select>
-
-<button type="submit">
-Submit Parameters
-</button>
-
-</form>
-
-
-<!-- Controls -->
-
-<button id="startInterview">
-Start Interview
-</button>
-
-<button id="startBtn" class="start-btn">
-Start Speaking
-</button>
-
-<button id="stopBtn">
-Stop Speaking
-</button>
+    </div>
 
 </div>
 
-</div>
-
-
-
-<!-- ================= Interview Section ================= -->
-
-<div class="interview-section">
-
-<h1>AI Mock Interview</h1>
-
-<h2>Question</h2>
-
-<div id="questionBox">
-<p id="question">Click Start Interview</p>
-</div>
-
-
-<h2>Answer</h2>
-
-<div id="AnswerBox">
-<p id="Answer">Your Answer here</p>
-</div>
-
-
-<h2>Feedback</h2>
-
-<div id="feedback"></div>
-
-</div>
-
-
-
-<!-- ================= Bottom Controls ================= -->
-
+<!-- ================= CENTER BUTTON BAR ================= -->
 <div class="interview-actions">
 
-<button id="submitAnswer">
-Submit Answer
-</button>
-
-<button id="nextquestion">
-Next Question
-</button>
-
-<button id="video">
-Start Video
-</button>
-
-<button id="stopVideo">
-Stop Video
-</button>
-
-<br><br>
-
-<img id="videoStream" width="640" height="480">
+    <button id="startInterview">Start Interview</button>
+    <button id="startBtn">Start Speaking</button>
+    <button id="stopBtn">Stop Speaking</button>
+    <button id="submitAnswer">Submit Answer</button>
+    <button id="nextquestion">Next Question</button>
+    <button id="video">Start Video</button>
+    <button id="stopVideo">Stop Video</button>
 
 </div>
 
+<!-- ================= VIDEO ================= -->
 
 
-</div>
-</div>
-</div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollSmoother.min.js"></script>
 <script src="script.js"></script>
 
 </body>

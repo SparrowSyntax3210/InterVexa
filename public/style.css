@@ -433,6 +433,14 @@ nav a:hover::after {
     box-shadow: 0 10px 20px rgba(106, 92, 255, 0.4);
 }
 
+.video-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px; /* space between both */
+    margin-top: 20px;
+}
+
 /* =========================================
    Cards
 ========================================= */
@@ -465,18 +473,45 @@ nav a:hover::after {
 }
 
 /* =========================================
-   Layout Containers
+   Base & Reset
+========================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #0d0814;
+    color: #e0e0e0;
+    line-height: 1.6;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1, h2 {
+    color: #ffd700;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+/* =========================================
+   PAGE 1: Layout Containers
 ========================================= */
 .container {
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
     width: 100%;
+    max-width: 1100px;
     margin-bottom: 30px;
 }
 
 .left, .right, .interview-section {
-    background: linear-gradient(145deg, #1c102b, #130a1d); /* Deep purple gradient */
+    background: linear-gradient(145deg, #1c102b, #130a1d);
     border: 1px solid #3a205e;
     border-radius: 16px;
     padding: 25px;
@@ -493,9 +528,7 @@ nav a:hover::after {
     min-width: 350px;
 }
 
-/* =========================================
-   Left Section - Features
-========================================= */
+/* Setup Features */
 .features {
     margin-top: 25px;
     display: flex;
@@ -510,12 +543,12 @@ nav a:hover::after {
     display: flex;
     align-items: center;
     gap: 15px;
-    border-left: 4px solid #b065ff; /* Violet accent */
+    border-left: 4px solid #b065ff;
     transition: all 0.3s ease;
 }
 
 .feature i {
-    color: #03dac6; /* Teal icon */
+    color: #03dac6;
     font-size: 1.2rem;
 }
 
@@ -525,9 +558,7 @@ nav a:hover::after {
     box-shadow: 0 0 15px rgba(176, 101, 255, 0.3);
 }
 
-/* =========================================
-   Right Section - Forms & Inputs
-========================================= */
+/* Forms & Inputs */
 .upload-box {
     border: 2px dashed #b065ff;
     border-radius: 12px;
@@ -554,7 +585,7 @@ nav a:hover::after {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    margin-bottom: 25px;
+    margin-bottom: 10px;
 }
 
 input, select {
@@ -573,9 +604,7 @@ input:focus, select:focus {
     box-shadow: 0 0 10px rgba(176, 101, 255, 0.5);
 }
 
-/* =========================================
-   Buttons & Controls (General)
-========================================= */
+/* General Buttons */
 button {
     background: #b065ff;
     color: #fff;
@@ -597,7 +626,7 @@ button:hover {
 }
 
 /* =========================================
-   Interview Section (Bottom)
+   PAGE 2: Interview Section & Layout
 ========================================= */
 .interview-section {
     width: 100%;
@@ -613,159 +642,8 @@ button:hover {
     width: 100%;
 }
 
-#questionBox {
-    background: rgba(3, 218, 198, 0.05);
-    border-left: 4px solid #03dac6;
-    padding: 20px;
-    border-radius: 0 8px 8px 0;
-    font-size: 1.1rem;
-    margin-bottom: 20px;
-    min-height: 80px;
-}
-
-#Answer {
-    background: rgba(3, 218, 198, 0.05);
-    border-left: 4px solid #03dac6;
-    padding: 20px;
-    border-radius: 0 8px 8px 0;
-    font-size: 1.1rem;
-    margin-bottom: 20px;
-    min-height: 80px;
-}
-
-
-#feedback {
-    min-height: 100px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px dashed #3a205e;
-    border-radius: 8px;
-    padding: 15px;
-}
-
-/* =========================================
-   Interview Actions (Bottom Bar Layout)
-========================================= */
-.interview-actions {
-    width: 100%;
-    max-width: 1100px;
-    display: flex;
-    flex-wrap: wrap; /* Allows wrapping on small screens */
-    gap: 15px;
-    justify-content: center;
-    align-items: center;
-    background: transparent;
-    box-shadow: none;
-    border: none;
-    padding: 20px 0;
-}
-
-.interview-actions button {
-    width: auto;
-    min-width: 160px;
-    flex: 1; /* Distributes width evenly */
-    max-width: 200px;
-    margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px; /* Spacing for font-awesome icons */
-}
-
-/* =========================================
-   Specific Lit Buttons
-========================================= */
-#startInterview {
-    background: #b065ff;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 100%;
-}
-
-#startInterview:hover {
-    background: #05ecd6;
-    box-shadow: 0 0 20px rgba(3, 218, 198, 0.8);
-}
-
-#startBtn {
-    background: #b065ff; /* Purple to match other action buttons */
-    color: #fff;
-}
-
-#startBtn:hover {
-    background: #c68cff;
-    box-shadow: 0 0 20px rgba(176, 101, 255, 0.6);
-}
-
-#stopBtn {
-    background: transparent;
-    border: 1px solid #ff4b4b;
-    color: #ff4b4b;
-}
-
-#stopBtn:hover {
-    background: rgba(255, 75, 75, 0.1);
-    box-shadow: 0 0 15px rgba(255, 75, 75, 0.5);
-}
-
-/* =========================================
-   JS Animation & Utility Classes
-========================================= */
-.is-listening {
-    animation: pulse-teal 1.5s infinite !important;
-}
-
-@keyframes pulse-teal {
-    0% { box-shadow: 0 0 0 0 rgba(3, 218, 198, 0.7); }
-    70% { box-shadow: 0 0 0 15px rgba(3, 218, 198, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(3, 218, 198, 0); }
-}
-
-.hidden {
-    display: none !important;
-}
-/* =========================================
-   Interview Body (Split Layout with Video)
-========================================= */
-.interview-body {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 25px;
-    width: 100%;
-}
-
-.video-container {
-    background: rgba(0, 0, 0, 0.4);
-    border: 2px solid #3a205e;
-    border-radius: 12px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    aspect-ratio: 16/9; /* Keeps video proportional */
-}
-
-.video-container video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.qa-container {
-    flex: 1.5; /* Takes up slightly more space than the video */
-    min-width: 350px;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Ensure hidden elements actually hide */
-.hidden {
-    display: none !important;
+.interview-header h1 {
+    margin-bottom: 0; 
 }
 
 .top-right-widget {
@@ -779,6 +657,35 @@ button:hover {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.interview-header-controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+#startInterview {
+    width: auto;
+    min-width: 250px;
+    background: #03dac6;
+    color: #000;
+    font-size: 1.1rem;
+    padding: 15px 30px;
+    margin: 0;
+}
+
+#startInterview:hover {
+    background: #05ecd6;
+    box-shadow: 0 0 20px rgba(3, 218, 198, 0.8);
+}
+
+/* Two Column Grid */
+.interview-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 25px;
+    width: 100%;
 }
 
 .column-left, .column-right {
@@ -797,6 +704,25 @@ button:hover {
     min-width: 300px;
 }
 
+/* Video & Content Boxes */
+.video-container {
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid #3a205e;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    aspect-ratio: 16/9;
+}
+
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .box-container h2 {
     font-size: 1.2rem;
     margin-bottom: 10px;
@@ -811,18 +737,6 @@ button:hover {
     color: #e0e0e0;
 }
 
-#assests-video {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: 0.4s ease;
-}
-
-#assests-video.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-
 .border-teal {
     border: 1px solid #03dac6;
     border-left: 4px solid #03dac6;
@@ -835,6 +749,54 @@ button:hover {
     background: rgba(176, 101, 255, 0.05);
 }
 
+/* =========================================
+   Bottom Action Buttons
+========================================= */
+.interview-actions {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 10px 0 30px 0;
+}
+
+.interview-actions button {
+    width: auto;
+    min-width: 160px;
+    flex: 1;
+    max-width: 200px;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+#startBtn {
+    background: #b065ff;
+    color: #fff;
+}
+
+#stopBtn {
+    background: transparent;
+    border: 1px solid #ff4b4b;
+    color: #ff4b4b;
+}
+
+#stopBtn:hover {
+    background: rgba(255, 75, 75, 0.1);
+    box-shadow: 0 0 15px rgba(255, 75, 75, 0.5);
+}
+
+/* =========================================
+   Utility Classes
+========================================= */
 .hidden {
     display: none !important;
 }
