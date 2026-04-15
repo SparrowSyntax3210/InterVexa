@@ -110,17 +110,18 @@ stopBtn.addEventListener("click", () => {
   if (mediaRecorder) {
     mediaRecorder.stop();
   }
-  startBtn.innerText = "Recording Completed";
+
+  stopBtn.innerText = "Recorded ✅";
+
+  setTimeout(() => {
+    stopBtn.innerText = "Analyzing... 🧠";
+  }, 300);
 });
 
-document.getElementById("video").addEventListener("click", () => {
-  console.log("Button clicked");
-  startTracking();
-});
+const video = document.getElementById("video");
+document.addEventListener("click", startTracking);
 
 async function startTracking() {
-  console.log("Sending request...");
-
   try {
     const response = await fetch("http://localhost:6000/video", {
       method: "POST",
@@ -135,7 +136,6 @@ async function startTracking() {
 }
 
 /* ================= Whisper ================= */
-
 async function sendToWhisper() {
   const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
 
@@ -149,19 +149,20 @@ async function sendToWhisper() {
     });
 
     const data = await response.json();
-
     const transcript = data.text;
 
     console.log("Transcript:", transcript);
 
     await sendFeedback(transcript);
+
+    // ✅ After analysis complete
+    stopBtn.innerText = "Analyzed ✅";
   } catch (error) {
     console.error("Whisper Error:", error);
   }
 
   audioChunks = [];
 }
-
 /* ================= Feedback ================= */
 
 async function sendFeedback(transcript) {
@@ -220,13 +221,7 @@ startInterviewBtn.addEventListener("click", async () => {
 
     askAIVoice(data.question.question);
   } catch (error) {
-    console.log("Fallback triggered");
-
-    const fallback = "Hello, I am ready to interview you. Let's begin.";
-
-    document.getElementById("question").innerText = fallback;
-
-    askAIVoice(fallback);
+    console.log("No Question");
   }
 });
 
