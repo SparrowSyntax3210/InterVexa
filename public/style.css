@@ -216,3 +216,209 @@ footer {
         box-shadow: 0 0 0 0 rgba(157, 123, 255, 0);
     }
 }
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+}
+
+body {
+    background: radial-gradient(circle at top, #0d0f2b, #050617);
+    color: white;
+    overflow-x: hidden;
+}
+
+/* Navbar */
+header {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 25px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 40px;
+    box-shadow: 0 0 20px rgba(255,255,255,0.1);
+    z-index: 100;
+}
+
+.logo {
+    font-size: 20px;
+}
+
+nav a {
+    color: #ccc;
+    margin: 0 10px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: 0.3s;
+    position: relative;
+}
+
+/* Hover underline animation */
+nav a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -5px;
+    width: 0%;
+    height: 2px;
+    background: #8b5cf6;
+    transition: 0.3s;
+}
+
+nav a:hover {
+    color: white;
+}
+
+nav a:hover::after {
+    width: 100%;
+}
+
+/* Hero Section */
+.hero {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+
+    background: radial-gradient(circle at center, rgba(139,92,246,0.2), transparent 60%);
+    animation: fadeIn 1.5s ease-in-out;
+}
+
+/* Tag */
+.tag {
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 15px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #ccc;
+    transition: 0.3s;
+}
+
+.tag:hover {
+    background: #8b5cf6;
+    color: white;
+    box-shadow: 0 0 10px #8b5cf6;
+}
+
+/* Heading */
+.hero h1 {
+    font-size: 48px;
+    margin-bottom: 15px;
+    background: linear-gradient(to right, #fff, #aaa);
+    color: transparent;
+    animation: slideUp 1s ease forwards;
+}
+
+/* Paragraph */
+.hero p {
+    color: #aaa;
+    max-width: 500px;
+    margin-bottom: 30px;
+    animation: fadeIn 2s ease;
+}
+
+/* Buttons */
+.buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
+    padding: 12px 20px;
+    border-radius: 25px;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* Primary button */
+.primary {
+    background: #8b5cf6;
+    color: white;
+}
+
+.primary:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 20px #8b5cf6;
+}
+
+/* Secondary button */
+.secondary {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+}
+
+.secondary:hover {
+    background: rgba(255,255,255,0.1);
+    transform: scale(1.05);
+}
+
+/* About Section */
+.about {
+    display: flex;
+    justify-content: space-between;
+    padding: 100px 10%;
+    gap: 50px;
+}
+
+.about-left {
+    width: 30%;
+    color: #8b5cf6;
+    letter-spacing: 2px;
+}
+
+.about-right {
+    width: 70%;
+    color: #aaa;
+}
+
+.about-right p {
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+/* Read more button */
+.read-more {
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: none;
+    background: #111;
+    color: white;
+    transition: 0.3s;
+}
+
+.read-more:hover {
+    background: #8b5cf6;
+    box-shadow: 0 0 15px #8b5cf6;
+    transform: translateX(5px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
