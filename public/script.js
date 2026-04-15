@@ -57,6 +57,28 @@ resumeUpload.addEventListener("change", (e) => {
   }
 });
 
+document
+  .getElementById("interviewForm")
+  .addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const role = document.getElementById("role").value;
+    const experience = document.getElementById("experience").value;
+    const mode = document.getElementById("mode").value;
+
+    await fetch("http://localhost:4000/form", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        role,
+        experience,
+        mode,
+      }),
+    });
+  });
+
 /* ================= Analyze Resume ================= */
 
 analyzeBtn.addEventListener("click", async () => {

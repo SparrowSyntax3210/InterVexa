@@ -52,16 +52,17 @@
 
         <h2>Interview Setup</h2>
 
-        <div class="form">
+        <form id="interviewForm">
+    <input type="text" id="role" placeholder="Enter Role">
+    <input type="text" id="experience" placeholder="Experience (2 years)">
+    
+    <select id="mode">
+        <option value="Technical">Technical Interview</option>
+        <option value="HR">HR Interview</option>
+    </select>
 
-            <input type="text" id="role" placeholder="Enter Role">
-
-            <input type="text" id="experience" placeholder="Experience (2 years)">
-
-            <select id="mode">
-                <option value="Technical">Technical Interview</option>
-                <option value="HR">HR Interview</option>
-            </select>
+    <button type="submit">Submit</button>
+</form>
 
             <!-- Upload Resume -->
             <div class="upload-box" id="uploadBox">

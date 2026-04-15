@@ -56,6 +56,34 @@ async function extractText(filePath) {
   }
 }
 
+/* ======================= UPLOAD ROUTE ======================= */
+
+let skills = [];
+
+app.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const filePath = req.file.path;
+
+    const text = await extractText(filePath);
+
+    skills = extractSkills(text);
+
+    console.log("Extracted Skills:", skills);
+
+    res.json({
+      message: "Resume uploaded successfully",
+      skills,
+    });
+  } catch (error) {
+    console.error("Upload Error:", error);
+    res.status(500).json({ error: "Upload failed" });
+  }
+});
+
 /* ======================= SKILLS ======================= */
 
 function extractSkills(text) {
@@ -82,7 +110,18 @@ function extractSkills(text) {
 
 /* ======================= QUESTION GENERATION ======================= */
 
-const generateQuestions = async (skills) => {
+app.post("/form", async (req, res) => {
+  const { role, experience, mode } = req.body;
+  console.log(role, experience, mode);
+
+  const parameter = `${role} with ${experience} - ${mode}`;
+
+  const questions = await generateQuestions(skills, parameter);
+
+  res.json({ questions });
+});
+
+const generateQuestions = async (skills, parameter) => {
   const messages = [
     {
       role: "system",
@@ -91,6 +130,8 @@ const generateQuestions = async (skills) => {
     {
       role: "user",
       content: `
+Generate interview for ${parameter};
+
 Generate interview questions based on:
 
 ${skills.join(", ")}
@@ -119,42 +160,6 @@ Format:
 
   return JSON.parse(cleaned);
 };
-
-/* ======================= UPLOAD ROUTE ======================= */
-
-app.post("/upload", upload.single("file"), async (req, res) => {
-  try {
-    const filePath = req.file.path;
-
-    const text = await extractText(filePath);
-
-    const skills = extractSkills(text);
-
-    const questions = await generateQuestions(skills);
-
-    const report = {
-      file: req.file.filename,
-      skills,
-      questions,
-      createdAt: new Date(),
-      currentQuestion: 0,
-      answers: [],
-    };
-
-    const reportPath = path.join(reportDir, `${Date.now()}-report.json`);
-
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-
-    res.json({
-      message: "Resume Analyzed",
-      skills,
-      questions,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Upload error");
-  }
-});
 
 /* ======================= START INTERVIEW ======================= */
 
