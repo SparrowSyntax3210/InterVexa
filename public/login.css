@@ -107,6 +107,7 @@ label {
     position: relative;
 }
 
+
 /* Glow underline effect */
 .input-box::after {
     content: "";

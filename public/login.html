@@ -17,22 +17,23 @@
             <p class="welcome">WELCOME BACK</p>
             <h2>Log into your account</h2>
 
-            <form>
-                <label>E-Mail or Username</label>
-                <div class="input-box">
-                    <input type="text" placeholder="Eddy@stocklabs.com">
-                </div>
+            <form method="POST" action="/login">
+            <label>E-Mail or Username</label>
+            <div class="input-box">
+            <input type="text" name="email" placeholder="Eddy@stocklabs.com" required >
+  </div>
 
-                <div class="password-row">
-                    <label>Password</label>
-                    <a href="#">Forgot password?</a>
-                </div>
+  <div class="password-row">
+    <label>Password</label>
+    <a href="#">Forgot password?</a>
+  </div>
 
-                <div class="input-box">
-                    <input type="password" placeholder="Enter your password">
-                </div>
+  <div class="input-box">
+    <input type="password" name="password" placeholder="Enter your password" required>
+  </div>
 
-                <button type="submit">Login now</button>
+  <button type="submit">Login</button>
+</form>
 
                 <p class="register">
                     Not registered yet? <a href="http://localhost:4000/signup.html">Register →</a>

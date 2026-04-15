@@ -21,6 +21,295 @@ a, button, .card {
     transition: all 0.3s ease;
 }
 
+#smooth-wrapper {
+  overflow: hidden;
+}
+
+#smooth-content {
+  min-height: 100vh;
+}
+
+/* ================= LOADER ================= */
+
+.loader-container {
+  position: fixed;
+  inset: 0;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+
+.loader-text-fill {
+  font-family: "Oswald", sans-serif;
+  font-size: 5vw;
+  text-transform: uppercase;
+  position: relative;
+  color: #565656;
+  overflow: hidden;
+}
+
+/* gradient fill layer */
+.loader-text-fill::before {
+  content: attr(data-title);
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #5c5b5b, #f9f9fa);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+
+  width: 0%;
+  animation: textFill 2.5s ease backwards;
+}
+
+@keyframes textFill {
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+/* NAV */
+.nav {
+  text-align: center;
+  height: 70px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  border-radius: 0px 0px 40px 40px;
+  padding: 14px 30px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+  position: fixed;
+}
+
+.nav img {
+  height: 30px;
+}
+
+.nav-part2 {
+  display: flex;
+  gap: 24px;
+}
+
+.nav-part2 h4 {
+  padding: 5px;
+  font-size: 17px;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: #111;
+}
+
+.nav-part2 a {
+  text-decoration: none;
+  position: relative;
+  color: white;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.nav-part2 a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: white;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.nav-part2 a:hover::after {
+  transform: scaleX(1);
+}
+
+.nav-part2.show {
+  right: 0;
+}
+
+/* Profile container */
+#profileCircle {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.menu-toggle {
+  display: none;
+  font-size: 26px;
+  cursor: pointer;
+  color: white;
+}
+
+/* Avatar */
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid #000;
+}
+
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 8px;
+  display: none;
+  z-index: 1000;
+}
+
+.dropdown a {
+  display: block;
+  padding: 8px 12px;
+  text-decoration: none;
+  color: #000;
+}
+
+.dropdown a:hover {
+  background: #eee;
+}
+
+.hidden {
+  display: none;
+}
+
+.menu-toggle {
+  display: none;
+  font-size: 26px;
+  cursor: pointer;
+  color: white;
+}
+
+/* Dropdown visibility */
+.dropdown.show {
+  display: block;
+}
+
+/* HERO SECTION */
+.page1 {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  color: white;
+}
+
+/* =================================================
+   HERO VIDEO BACKGROUND
+================================================= */
+.hero-video {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.hero-video video {
+  width: 100%;
+  height: 940px;
+  object-fit: cover;
+  filter: brightness(0.75) contrast(1.05);
+}
+
+.hero-section {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  /* center horizontally */
+  text-align: center;
+
+  gap: 14px;
+  padding: 0 20px;
+}
+
+.floating {
+  font-family: "Oswald", sans-serif;
+  color: #fff;
+  line-height: 1.1;
+  margin: 0;
+}
+
+
+.text1 {
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+
+.text2 {
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 800;
+  letter-spacing: -1px;
+  opacity: 0.9;
+}
+
+.fill-btn {
+  margin-top: 30px;
+  border-radius: 30px;
+  padding: 16px 40px;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  font-family: "Oswald", sans-serif;
+  position: relative;
+  border: 2px solid rgba(236, 231, 231, 0.4);
+  backdrop-filter: blur(6px);
+}
+
+.fill-btn .label {
+  position: relative;
+  z-index: 2;
+  color: #1d1c1c;
+  font-size: 18px;
+  letter-spacing: 1px;
+  transition: color 0.4s ease;
+}
+
+.fill-btn .fill {
+  position: absolute;
+  inset: 0;
+  background: #181818;
+  transform: scaleX(0);
+  transform-origin: left;
+  z-index: 1;
+  transition: transform 0.4s ease;
+}
+
+.label a {
+  text-decoration: none;
+  color: white;
+
+}
+
+.fill-btn:hover .fill {
+  transform: scaleX(1);
+}
+
+.fill-btn:hover .label {
+  color: #000;
+}
+
+
 /* =========================================
    Navbar
 ========================================= */
@@ -183,7 +472,6 @@ nav a:hover::after {
     flex-wrap: wrap;
     gap: 30px;
     width: 100%;
-    max-width: 1100px;
     margin-bottom: 30px;
 }
 
@@ -335,6 +623,17 @@ button:hover {
     min-height: 80px;
 }
 
+#Answer {
+    background: rgba(3, 218, 198, 0.05);
+    border-left: 4px solid #03dac6;
+    padding: 20px;
+    border-radius: 0 8px 8px 0;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    min-height: 80px;
+}
+
+
 #feedback {
     min-height: 100px;
     background: rgba(255, 255, 255, 0.02);
@@ -376,13 +675,15 @@ button:hover {
    Specific Lit Buttons
 ========================================= */
 #startInterview {
-    width: auto;
-    min-width: 250px;
-    background: #03dac6; /* Vibrant Teal */
-    color: #000;
-    font-size: 1.1rem;
-    padding: 15px 30px;
-    margin: 0;
+    background: #b065ff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
 }
 
 #startInterview:hover {
@@ -509,6 +810,18 @@ button:hover {
     min-height: 120px;
     color: #e0e0e0;
 }
+
+#assests-video {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: 0.4s ease;
+}
+
+#assests-video.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 
 .border-teal {
     border: 1px solid #03dac6;

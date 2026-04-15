@@ -6,6 +6,7 @@ const multer = require("multer");
 const { askAi } = require("./services/openRouter.service");
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 const User = require("../db/models/User");
+const session = require("express-session");
 const app = express();
 
 /* ======================= MIDDLEWARE ======================= */
@@ -15,6 +16,31 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 app.use(express.static(path.join(__dirname, "../public")));
+
+/* ======================= SESSION ======================= */
+
+app.use(
+  session({
+    secret: "intervexa-secret", // change this to something strong
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // true only if using HTTPS
+      httpOnly: true,
+    },
+  }),
+);
+
+app.get("/auth-status", (req, res) => {
+  if (req.session && req.session.user) {
+    return res.json({
+      loggedIn: true,
+      user: req.session.user,
+    });
+  }
+
+  return res.json({ loggedIn: false });
+});
 
 /* ======================= FOLDERS ======================= */
 
@@ -126,7 +152,7 @@ function extractSkills(text) {
 
 app.post("/form", async (req, res) => {
   try {
-    const { role, experience, mode } = req.body;
+    const { role, experience, mode, Number } = req.body;
 
     const parameter = `${role} with ${experience} experience - ${mode}`;
 
@@ -156,7 +182,7 @@ app.post("/form", async (req, res) => {
   }
 });
 
-const generateQuestions = async (skills, role, experience, mode) => {
+const generateQuestions = async (skills, role, experience, mode, Number) => {
   const messages = [
     {
       role: "system",
@@ -170,12 +196,13 @@ Generate ${mode} interview questions.
 Candidate Details:
 Role: ${role}
 Experience: ${experience}
+Number : ${Number}
 
 Skills:
 ${skills.join(", ")}
 
 Rules:
-- Generate 3 interview questions
+- Generate Number interview questions
 - If mode is technical → technical questions
 - If mode is HR → behavioral questions
 - Questions should match experience level
@@ -287,6 +314,42 @@ app.post("/nextquestion", (req, res) => {
   }
 });
 
+app.post("/interview-answer", async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    const files = fs.readdirSync(reportDir);
+
+    if (!files.length) {
+      return res.json({
+        answer: "No report found",
+      });
+    }
+
+    const latestFile = files
+      .map((file) => ({
+        name: file,
+        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
+      }))
+      .sort((a, b) => b.time - a.time)[0];
+
+    const reportPath = path.join(reportDir, latestFile.name);
+
+    const report = JSON.parse(fs.readFileSync(reportPath));
+
+    const current = report.questions[report.currentQuestion];
+
+    res.json({
+      question: current.question,
+      answer: current.answer,
+      userAnswer: text,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Answer error");
+  }
+});
+
 /* ======================= FEEDBACK ======================= */
 
 app.post("/interview-feedback", async (req, res) => {
@@ -310,14 +373,7 @@ app.post("/interview-feedback", async (req, res) => {
 
     const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
 
-    console.log("Loaded Report ↓↓↓");
-    console.log(JSON.stringify(report, null, 2));
-
-    /* FIXED INDEX */
-
     const currentQ = report.questions[report.currentQuestion - 1];
-
-    console.log("Current Question:", currentQ);
 
     if (!currentQ) {
       return res.json({
@@ -325,21 +381,14 @@ app.post("/interview-feedback", async (req, res) => {
       });
     }
 
-    /* GET LAST ANSWER */
-
     const lastAnswer = report.answers[report.answers.length - 1];
-
     const transcript = lastAnswer?.answer;
-
-    console.log("Transcript:", transcript);
 
     if (!transcript) {
       return res.status(400).json({
         message: "No answer found",
       });
     }
-
-    /* AI FEEDBACK */
 
     const messages = [
       {
@@ -367,8 +416,6 @@ Return JSON:
 
     const aiResponse = await askAi(messages);
 
-    console.log("AI Raw Response:", aiResponse);
-
     const cleaned = aiResponse
       .replace(/```json/g, "")
       .replace(/```/g, "")
@@ -376,22 +423,12 @@ Return JSON:
 
     const feedback = JSON.parse(cleaned);
 
-    console.log("Parsed Feedback:", feedback);
-
-    /* UPDATE REPORT */
-
     lastAnswer.feedback = feedback;
     lastAnswer.time = new Date();
 
     report.currentQuestion += 1;
 
-    console.log("Saving to:", reportPath);
-
-    /* SAVE TO SAME FOLDER */
-
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf-8");
-
-    console.log("Report Saved Successfully ✅");
 
     res.json({
       feedback,
@@ -401,6 +438,72 @@ Return JSON:
     console.error("Feedback Error:", error);
     res.status(500).send("Feedback error");
   }
+});
+
+app.post("/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+      return res.send("All fields are required");
+    }
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.send("User already exists");
+
+    await new User({ username, email, password }).save();
+
+    res.redirect("/login.html");
+  } catch (err) {
+    console.error(err);
+    res.send("Error saving user");
+  }
+});
+
+app.use((req, res, next) => {
+  console.log("SESSION EXISTS?", !!req.session);
+  next();
+});
+
+app.post("/login", async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+
+    const { email, password } = req.body || {};
+
+    if (!email || !password) {
+      return res.status(400).send("Email and password required");
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user || user.password !== password) {
+      return res.send("Invalid email or password ❌");
+    }
+
+    req.session.user = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+    };
+
+    return res.redirect("/index.html"); // ✅ fixed
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Login error");
+  }
+});
+
+app.get("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Logout Error:", err);
+      return res.send("Error logging out");
+    }
+
+    res.clearCookie("connect.sid"); // 🔥 remove session cookie
+    res.redirect("/index.html"); // or "/"
+  });
 });
 
 module.exports = app;

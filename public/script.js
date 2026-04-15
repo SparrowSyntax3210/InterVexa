@@ -1,374 +1,243 @@
-/* ================= AI Voice Engine ================= */
+/* ================= GSAP SETUP ================= */
+gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
-function askAIVoice(text) {
-  const synth = window.speechSynthesis;
-  synth.cancel();
+/* ================= LOADER ================= */
+document.addEventListener("DOMContentLoaded", () => {
+  handleAuthUI();
+  const tl = gsap.timeline({
+    onComplete: initSmoothScroll,
+  });
 
-  const utterance = new SpeechSynthesisUtterance(text);
+  tl.set(".loader-container", { autoAlpha: 1 })
+    .to({}, { duration: 0.8 })
+    .to(".loader-text-fill", {
+      y: -60,
+      opacity: 0,
+      duration: 0.5,
+    })
+    .to(".loader-container", {
+      yPercent: -100,
+      duration: 0.8,
+    })
+    .set(".loader-container", { display: "none" })
+    .from(".nav img, .nav h4, .floating, .fill-btn", {
+      y: 80,
+      opacity: 0,
+      duration: 0.9,
+      stagger: 0.12,
+    });
 
-  const voices = synth.getVoices();
-  utterance.voice =
-    voices.find((v) => v.name.includes("Zira") || v.name.includes("Female")) ||
-    voices[0];
+  initAuthUI();
+  initLogin();
+});
 
-  utterance.rate = 0.9;
-  synth.speak(utterance);
+/* ================= SMOOTH SCROLL ================= */
+function initSmoothScroll() {
+  ScrollSmoother.create({
+    wrapper: "#smooth-wrapper",
+    content: "#smooth-content",
+    smooth: 1.2,
+    effects: true,
+  });
+
+  initAnimations();
 }
 
-// Load voices properly
-if ("speechSynthesis" in window) {
-  window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged = () => {
-    console.log("Voices Loaded");
-  };
+/* ================= ANIMATIONS ================= */
+function initAnimations() {
+  gsap.from(".card", {
+    opacity: 0,
+    y: 60,
+    stagger: 0.2,
+    scrollTrigger: {
+      trigger: ".about",
+      start: "top 60%",
+    },
+  });
 }
 
-/* ================= DOM ================= */
+/* ================= LOGIN ================= */
+function initLogin() {
+  const form = document.querySelector("form");
 
-const role = document.getElementById("role");
-const experience = document.getElementById("experience");
-const mode = document.getElementById("mode");
-const stopBtn = document.getElementById("stopBtn");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = form.email.value.trim();
+    const password = form.password.value.trim();
+
+    if (!email || !password) {
+      alert("Enter email & password");
+      return;
+    }
+
+    try {
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        window.location.href = data.redirect || "/index.html";
+      } else {
+        alert(data.message || "Login failed");
+      }
+    } catch (err) {
+      console.error("Login Error:", err);
+      alert("Server error");
+    }
+  });
+}
+
+/* ================= AUTH UI ================= */
+function initAuthUI() {
+  const profile = document.getElementById("profileCircle");
+
+  if (!profile || !btn) return;
+
+  fetch("/auth-status", { credentials: "include" })
+    .then((res) => res.json())
+    .then((data) => {
+      profile.style.display = data.loggedIn ? "flex" : "none";
+      btn.style.display = data.loggedIn ? "none" : "inline-block";
+    })
+    .catch(() => {
+      profile.style.display = "none";
+      btn.style.display = "inline-block";
+    });
+}
+
+/* ================= PROFILE DROPDOWN ================= */
+const avatar = document.querySelector(".avatar");
+const dropdown = document.querySelector(".dropdown");
+
+if (avatar) {
+  avatar.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown.style.display =
+      dropdown.style.display === "block" ? "none" : "block";
+  });
+
+  document.addEventListener("click", () => {
+    dropdown.style.display = "none";
+  });
+}
+
+function handleAuthUI() {
+  const profile = document.getElementById("profileCircle");
+  const getStartedBtn = document.querySelector("#getStartedBtn");
+
+  if (!profile || !getStartedBtn) return;
+
+  fetch("/auth-status", {
+    credentials: "include",
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.loggedIn) {
+        profile.classList.remove("hidden");
+        getStartedBtn.classList.add("hidden");
+      } else {
+        profile.classList.add("hidden");
+        getStartedBtn.classList.remove("hidden");
+      }
+    });
+}
+
+/* ================= RESUME UPLOAD ================= */
+let resumeFile = null;
+
 const uploadBox = document.getElementById("uploadBox");
 const resumeUpload = document.getElementById("resumeUpload");
 const resumeText = document.getElementById("resumeText");
-const analyzeBtn = document.getElementById("analyzeBtn");
-const startBtn = document.getElementById("startBtn");
-const startInterviewBtn = document.getElementById("startInterview");
-const analysisResult = document.getElementById("analysisResult");
-const nextQuestion = document.getElementById("nextquestion");
 
-let resumeFile = null;
-let projects = [];
-let skills = [];
-let resumeContent = "";
+if (uploadBox && resumeUpload) {
+  uploadBox.addEventListener("click", () => resumeUpload.click());
 
-/* ================= Upload Resume ================= */
-
-uploadBox.addEventListener("click", () => {
-  resumeUpload.click();
-});
-
-/* FIX HERE → change instead of click */
-resumeUpload.addEventListener("change", (e) => {
-  resumeFile = e.target.files[0];
-
-  if (resumeFile) {
-    resumeText.innerText = resumeFile.name;
-  }
-});
-
-/* ================= Interview Form ================= */
-
-document
-  .getElementById("interviewForm")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const role = document.getElementById("role").value;
-    const experience = document.getElementById("experience").value;
-    const mode = document.getElementById("mode").value;
-
-    await fetch("http://localhost:4000/form", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        role,
-        experience,
-        mode,
-      }),
-    });
+  resumeUpload.addEventListener("change", (e) => {
+    resumeFile = e.target.files[0];
+    if (resumeFile) resumeText.innerText = resumeFile.name;
   });
-
-uploadBox.addEventListener("click", (e) => {
-  if (e.target.id !== "analyzeBtn") {
-    resumeUpload.click();
-  }
-});
-
-/* ================= Analyze Resume ================= */
-
-analyzeBtn.addEventListener("click", async (e) => {
-  e.stopPropagation(); // ✅ Prevent upload popup
-
-  if (!resumeFile) {
-    alert("Please upload resume first");
-    return;
-  }
-
-  analyzeBtn.innerText = "Analyzing...";
-
-  const result = await analyzeResume(resumeFile);
-
-  analyzeBtn.innerText = "Analyzed ✅";
-});
-
-/* ================= Audio Recording ================= */
-
-let mediaRecorder;
-let audioChunks = [];
-
-startBtn.addEventListener("click", async () => {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: true,
-  });
-
-  mediaRecorder = new MediaRecorder(stream);
-
-  audioChunks = [];
-
-  mediaRecorder.ondataavailable = (event) => {
-    audioChunks.push(event.data);
-  };
-
-  mediaRecorder.onstop = sendToWhisper;
-
-  mediaRecorder.start();
-
-  console.log("Recording started...");
-
-  startBtn.innerText = "Recording";
-});
-
-stopBtn.addEventListener("click", () => {
-  if (mediaRecorder) {
-    mediaRecorder.stop();
-  }
-
-  stopBtn.innerText = "Recorded ✅";
-
-  setTimeout(() => {
-    stopBtn.innerText = "Analyzing... 🧠";
-  }, 300);
-});
-
-// Start Video
-document.getElementById("video").addEventListener("click", () => {
-  document.getElementById("videoStream").src = "http://localhost:8000/video";
-});
-
-// Stop Video
-document.getElementById("stopVideo").addEventListener("click", async () => {
-  await fetch("http://localhost:8000/stop-video", {
-    method: "POST",
-  });
-
-  document.getElementById("videoStream").src = "";
-
-  getScore();
-});
-
-// Get Confidence Score
-async function getScore() {
-  const res = await fetch("http://localhost:8000/confidence");
-
-  const data = await res.json();
-
-  console.log("Confidence Score:", data.confidence_score);
 }
 
-/* ================= Whisper ================= */
-async function sendToWhisper() {
-  const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+/* ================= ANALYZE RESUME ================= */
+const analyzeBtn = document.getElementById("analyzeBtn");
 
-  const formData = new FormData();
-  formData.append("audio", audioBlob);
+if (analyzeBtn) {
+  analyzeBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
 
-  try {
-    const response = await fetch("http://localhost:5000/transcribe", {
+    if (!resumeFile) {
+      alert("Upload resume first");
+      return;
+    }
+
+    analyzeBtn.innerText = "Analyzing...";
+
+    const formData = new FormData();
+    formData.append("file", resumeFile);
+
+    const res = await fetch("/upload", {
       method: "POST",
       body: formData,
     });
 
-    const data = await response.json();
-    const transcript = data.text;
+    const data = await res.json();
 
-    console.log("Transcript:", transcript);
+    document.getElementById("analysisResult").innerHTML = `
+      <h3>Skills</h3>
+      ${data.skills.map((s) => `<span>${s}</span>`).join("")}
+    `;
 
-    await sendFeedback(transcript);
-
-    // ✅ After analysis complete
-    stopBtn.innerText = "Analyzed ✅";
-  } catch (error) {
-    console.error("Whisper Error:", error);
-  }
-
-  audioChunks = [];
-}
-/* ================= Feedback ================= */
-
-async function sendFeedback(transcript) {
-  try {
-    const response = await fetch("http://localhost:4000/interview-feedback", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: transcript,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!data.feedback) {
-      document.getElementById("feedback").innerText = "No feedback received";
-      return;
-    }
-
-    document.getElementById("feedback").innerHTML = `
-<p><b>Communication:</b> ${data.feedback.communication || "N/A"}</p>
-<p><b>Technical:</b> ${data.feedback.technical || "N/A"}</p>
-<p><b>Strengths:</b> ${(data.feedback.strengths || []).join(", ")}</p>
-<p><b>Improvements:</b> ${(data.feedback.improvements || []).join(", ")}</p>
-<p><b>Overall Score:</b> ${data.feedback.overallScore || "N/A"}</p>
-`;
-
-    if (data.nextQuestion) {
-      document.getElementById("question").innerText =
-        data.nextQuestion.question;
-
-      askAIVoice(data.nextQuestion.question);
-    } else {
-      document.getElementById("question").innerText = "Interview Completed 🎉";
-
-      askAIVoice("Interview completed. Great job!");
-    }
-  } catch (error) {
-    console.error("Feedback Error:", error);
-  }
+    analyzeBtn.innerText = "Done ✅";
+  });
 }
 
-/* ================= Start Interview ================= */
+/* ================= START INTERVIEW ================= */
+const startInterviewBtn = document.getElementById("startInterview");
 
-startInterviewBtn.addEventListener("click", async () => {
-  try {
-    const response = await fetch("http://localhost:4000/start-interview", {
-      method: "POST",
-    });
-
-    const data = await response.json();
+if (startInterviewBtn) {
+  startInterviewBtn.addEventListener("click", async () => {
+    const res = await fetch("/start-interview", { method: "POST" });
+    const data = await res.json();
 
     document.getElementById("question").innerText = data.question.question;
-
-    askAIVoice(data.question.question);
-  } catch (error) {
-    console.log("No Question");
-  }
-});
-
-/* ================= Submit Answer ================= */
-
-document.getElementById("submitAnswer").addEventListener("click", async () => {
-  try {
-    const response = await fetch("http://localhost:4000/interview-feedback", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        send: true,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (data.feedback) {
-      document.getElementById("feedback").innerText = JSON.stringify(
-        data.feedback,
-        null,
-        2,
-      );
-    }
-
-    if (data.nextQuestion) {
-      document.getElementById("question").innerText =
-        data.nextQuestion.question;
-
-      askAIVoice(data.nextQuestion.question);
-    }
-  } catch (error) {
-    console.error(error);
-  }
-});
-
-/* ================= Next Question ================= */
-
-nextQuestion.addEventListener("click", async () => {
-  try {
-    const response = await fetch("http://localhost:4000/nextquestion", {
-      method: "POST",
-    });
-
-    const data = await response.json();
-
-    if (data.question) {
-      document.getElementById("question").innerText = data.question.question;
-
-      askAIVoice(data.question.question);
-    }
-
-    if (data.message) {
-      document.getElementById("question").innerText = data.message;
-
-      askAIVoice(data.message);
-    }
-  } catch (error) {
-    console.error("Next Question Error:", error);
-  }
-});
-
-/* ================= Analyze Resume ================= */
-
-async function analyzeResume(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await fetch("http://localhost:4000/upload", {
-    method: "POST",
-    body: formData,
   });
-
-  const data = await response.json();
-
-  console.log(data);
-
-  /* Show Skills on UI */
-  const analysisResult = document.getElementById("analysisResult");
-
-  analysisResult.innerHTML = `
-    <h3>Resume Analysis</h3>
-    <p><strong>Skills Found:</strong></p>
-    <div class="skills">
-      ${data.skills.map((skill) => `<span class="skill">${skill}</span>`).join("")}
-    </div>
-  `;
-
-  return data;
 }
 
-/* ================= Render Analysis ================= */
+/* ================= NEXT QUESTION ================= */
+const nextBtn = document.getElementById("nextquestion");
 
-function renderAnalysis() {
-  analysisResult.innerHTML = "";
+if (nextBtn) {
+  nextBtn.addEventListener("click", async () => {
+    const res = await fetch("/nextquestion", { method: "POST" });
+    const data = await res.json();
 
-  if (projects.length > 0) {
-    analysisResult.innerHTML += `
-<h3>Projects</h3>
-<ul>
-${projects.map((p) => `<li>${p}</li>`).join("")}
-</ul>
-`;
-  }
+    document.getElementById("question").innerText =
+      data.question?.question || data.message;
+  });
+}
 
-  if (skills.length > 0) {
-    analysisResult.innerHTML += `
-<h3>Skills</h3>
-<div>
-${skills.map((s) => `<span class="skill">${s}</span>`).join("")}
-</div>
-`;
-  }
+/* ================= VOICE ================= */
+function askAIVoice(text) {
+  const synth = window.speechSynthesis;
+  synth.cancel();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.9;
+
+  synth.speak(utter);
+}
+
+/* ================= LOGOUT ================= */
+function logoutUser() {
+  window.location.href = "/";
 }
