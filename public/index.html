@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +17,7 @@
 
 <div class="container">
 
-    <!-- Left Section -->
+    <!-- ================= Left Section ================= -->
     <div class="left">
 
         <h1>Start Your AI Interview</h1>
@@ -47,77 +48,118 @@
 
     </div>
 
-    <!-- Right Section -->
+
+    <!-- ================= Right Section ================= -->
     <div class="right">
 
         <h2>Interview Setup</h2>
 
-        <form id="interviewForm">
-    <input type="text" id="role" placeholder="Enter Role">
-    <input type="text" id="experience" placeholder="Experience (2 years)">
-    
-    <select id="mode">
-        <option value="Technical">Technical Interview</option>
-        <option value="HR">HR Interview</option>
-    </select>
 
-    <button type="submit">Submit</button>
-</form>
+        <!-- ================= Resume Upload ================= -->
+        <div class="upload-box" id="uploadBox">
 
-            <!-- Upload Resume -->
-            <div class="upload-box" id="uploadBox">
+            <i class="fa-solid fa-file-arrow-up"></i>
 
-                <i class="fa-solid fa-file-arrow-up"></i>
+            <input type="file" id="resumeUpload" hidden>
 
-                <input type="file" id="resumeUpload" hidden>
+            <p id="resumeText">Click to Upload Resume</p>
 
-                <p id="resumeText">Click to Upload Resume</p>
-
-                <button id="analyzeBtn" class="analyze-btn">
-                    Analyze Resume
-                </button>
-
-            </div>
-
-            <!-- Resume Analysis -->
-            <div id="analysisResult" class="analysis"></div>
-
-            <!-- Interview Controls -->
-            <button id="startInterview">Start Interview</button>
-
-            <button id="startBtn" class="start-btn">
-                Start Speaking
-            </button>
-
-            <button id="stopBtn">
-                Stop Speaking
+            <button type="button" id="analyzeBtn" class="analyze-btn">
+                Analyze Resume
             </button>
 
         </div>
+
+
+        <!-- Resume Analysis -->
+        <div id="analysisResult" class="analysis"></div>
+
+
+        <!-- ================= Interview Form ================= -->
+        <form id="interviewForm">
+
+            <input 
+                type="text" 
+                id="role" 
+                placeholder="Enter Role"
+            >
+
+            <input 
+                type="text" 
+                id="experience" 
+                placeholder="Experience (2 years)"
+            >
+
+            <select id="mode">
+                <option value="Technical">Technical Interview</option>
+                <option value="HR">HR Interview</option>
+            </select>
+
+            <button type="submit">
+                Generate Interview
+            </button>
+
+        </form>
+
+
+        <!-- ================= Interview Controls ================= -->
+
+        <button id="startInterview">
+            Start Interview
+        </button>
+
+        <button id="startBtn" class="start-btn">
+            Start Speaking
+        </button>
+
+        <button id="stopBtn">
+            Stop Speaking
+        </button>
 
     </div>
 
 </div>
 
-<!-- Interview Section -->
+
+<!-- ================= Interview Section ================= -->
 
 <div class="interview-section">
 
-<h1>AI Mock Interview</h1>
+    <h1>AI Mock Interview</h1>
 
-<h2>Question</h2>
-<div id="questionBox">
-<p id="question">Click Start Interview</p>
+    <h2>Question</h2>
+
+    <div id="questionBox">
+        <p id="question">Click Start Interview</p>
+    </div>
+
+
+    <h2>Feedback</h2>
+
+    <div id="feedback"></div>
+
 </div>
 
-<h2>Feedback</h2>
-<div id="feedback"></div>
+
+<!-- ================= Bottom Controls ================= -->
+
+<div class="interview-actions">
+
+    <button id="submitAnswer">
+        Submit Answer
+    </button>
+
+    <button id="nextquestion">
+        Next Question
+    </button>
+
+    <button id="video">
+        Start Video
+    </button>
 
 </div>
 
-<button id="submitAnswer">Submit Answer</button>
-<button id="nextquestion">Next Question</button>
-<button id="video">Start Video</button>
+
 <script src="script.js"></script>
 
 </body>
