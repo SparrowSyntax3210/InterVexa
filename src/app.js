@@ -111,38 +111,66 @@ function extractSkills(text) {
 /* ======================= QUESTION GENERATION ======================= */
 
 app.post("/form", async (req, res) => {
-  const { role, experience, mode } = req.body;
-  console.log(role, experience, mode);
+  try {
+    const { role, experience, mode } = req.body;
 
-  const parameter = `${role} with ${experience} - ${mode}`;
+    const parameter = `${role} with ${experience} experience - ${mode}`;
 
-  const questions = await generateQuestions(skills, parameter);
+    const questions = await generateQuestions(skills, role, experience, mode);
 
-  res.json({ questions });
+    const report = {
+      role,
+      experience,
+      mode,
+      questions,
+      answers: [],
+      currentQuestion: 0,
+      createdAt: new Date(),
+    };
+
+    const fileName = `report-${Date.now()}.json`;
+    const reportPath = path.join(reportDir, fileName);
+
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+
+    res.json({ questions });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Failed to generate questions",
+    });
+  }
 });
 
-const generateQuestions = async (skills, parameter) => {
+const generateQuestions = async (skills, role, experience, mode) => {
   const messages = [
     {
       role: "system",
-      content: "You are interview question generator",
+      content: "You are an expert interview question generator",
     },
     {
       role: "user",
       content: `
-Generate interview for ${parameter};
+Generate ${mode} interview questions.
 
-Generate interview questions based on:
+Candidate Details:
+Role: ${role}
+Experience: ${experience}
 
+Skills:
 ${skills.join(", ")}
 
 Rules:
-- Generate only 3 interview question 
+- Generate 3 interview questions
+- If mode is technical → technical questions
+- If mode is HR → behavioral questions
+- Questions should match experience level
 - Return JSON only
 
 Format:
 [
 {
+"type":"technical",
 "skill":"React",
 "question":"Explain Virtual DOM"
 }
@@ -167,23 +195,36 @@ app.post("/start-interview", async (req, res) => {
   try {
     const files = fs.readdirSync(reportDir);
 
-    const latest = files
+    if (!files.length) {
+      return res.status(400).json({
+        message: "No report found",
+      });
+    }
+
+    const latestFile = files
       .map((file) => ({
         name: file,
         time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
       }))
-      .sort((a, b) => b.time - a.time)[0].name;
+      .sort((a, b) => b.time - a.time)[0];
 
-    const reportPath = path.join(reportDir, latest);
+    if (!latestFile) {
+      return res.status(400).json({
+        message: "No latest report",
+      });
+    }
+
+    const reportPath = path.join(reportDir, latestFile.name);
 
     const report = JSON.parse(fs.readFileSync(reportPath));
 
-    questions = report.questions;
-    currentQuestionIndex = 0;
+    report.currentQuestion = 0;
+
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
     res.json({
-      question: questions[0],
-      total: questions.length,
+      question: report.questions[0],
+      total: report.questions.length,
     });
   } catch (err) {
     console.error(err);
@@ -195,14 +236,20 @@ app.post("/nextquestion", (req, res) => {
   try {
     const files = fs.readdirSync(reportDir);
 
-    const latest = files
+    if (!files.length) {
+      return res.status(400).json({
+        message: "No report found",
+      });
+    }
+
+    const latestFile = files
       .map((file) => ({
         name: file,
         time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
       }))
-      .sort((a, b) => b.time - a.time)[0].name;
+      .sort((a, b) => b.time - a.time)[0];
 
-    const reportPath = path.join(reportDir, latest);
+    const reportPath = path.join(reportDir, latestFile.name);
 
     const report = JSON.parse(fs.readFileSync(reportPath));
 
@@ -216,7 +263,6 @@ app.post("/nextquestion", (req, res) => {
         index: report.currentQuestion,
       });
     } else {
-      report.currentQuestionIndex = 0;
       res.json({
         message: "Interview Completed",
       });

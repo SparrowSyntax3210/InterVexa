@@ -144,22 +144,20 @@ stopBtn.addEventListener("click", () => {
   }, 300);
 });
 
-document.getElementById("video").addEventListener("click", startTracking);
+const video = document.getElementById("video");
 
+video.addEventListener("click", startTracking);
 async function startTracking() {
   try {
-    const response = await fetch("http://localhost:6000/video", {
+    await fetch("http://localhost:8000/video", {
       method: "POST",
     });
 
-    const data = await response.json();
-
-    console.log("Confidence Score:", data.confidence_score);
+    console.log("Video Started");
   } catch (error) {
     console.error("Error:", error);
   }
 }
-
 /* ================= Whisper ================= */
 async function sendToWhisper() {
   const audioBlob = new Blob(audioChunks, { type: "audio/webm" });

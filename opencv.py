@@ -3,22 +3,25 @@ import cv2
 import time
 import numpy as np
 import math
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 import whisper
 import os
-import json
-from datetime import datetime
+import threading
 from flask_cors import CORS
 
+# FFmpeg Path
 os.environ["PATH"] += os.pathsep + r"C:\ffmpeg\bin"
 
 app = Flask(__name__)
 CORS(app)
 
-# Whisper Model
+# Load Whisper Model
 model = whisper.load_model("base")
 
-# --- MediaPipe Setup ---
+# -------------------------------
+# MediaPipe Setup
+# -------------------------------
+
 BaseOptions = mp.tasks.BaseOptions
 FaceLandmarker = mp.tasks.vision.FaceLandmarker
 FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
@@ -35,17 +38,28 @@ options = FaceLandmarkerOptions(
 
 detector = FaceLandmarker.create_from_options(options)
 
-# Sensitivity
+# -------------------------------
+# Sensitivity Settings
+# -------------------------------
+
 H_GAZE_SENSITIVITY = 0.07
 V_GAZE_SENSITIVITY = 0.12
 YAW_THRESHOLD = 15
 PITCH_THRESHOLD = 15
 
+confidence_score = 0
 
-@app.route("/video", methods=["POST"])
-def start_tracking():
+
+# -------------------------------
+# Video Tracking Function
+# -------------------------------
+
+def video_tracking():
+
+    global confidence_score
 
     cap = cv2.VideoCapture(0)
+
     focused_frames = 0
     total_frames = 0
 
@@ -54,11 +68,11 @@ def start_tracking():
     while cap.isOpened():
 
         ret, frame = cap.read()
+
         if not ret:
             break
 
         frame = cv2.flip(frame, 1)
-        h, w, _ = frame.shape
 
         mp_image = mp.Image(
             image_format=mp.ImageFormat.SRGB,
@@ -75,8 +89,8 @@ def start_tracking():
         if result.face_landmarks and result.facial_transformation_matrixes:
 
             total_frames += 1
-            landmarks = result.face_landmarks[0]
 
+            landmarks = result.face_landmarks[0]
             matrix = result.facial_transformation_matrixes[0]
 
             yaw = math.atan2(
@@ -168,21 +182,51 @@ def start_tracking():
     cap.release()
     cv2.destroyAllWindows()
 
-    score = 0
-
     if total_frames > 0:
-        score = (focused_frames / total_frames) * 100
+        confidence_score = (focused_frames / total_frames) * 100
 
-    print("Confidence Score:", score)
+    print("Confidence Score:", confidence_score)
+
+
+# -------------------------------
+# Start Video Route
+# -------------------------------
+
+@app.route("/video", methods=["POST"])
+def start_video():
+
+    print("Video API Called")
+
+    thread = threading.Thread(
+        target=video_tracking
+    )
+
+    thread.start()
 
     return jsonify({
-        "confidence_score": score
+        "message": "Video tracking started"
     })
 
+
+# -------------------------------
+# Get Score Route
+# -------------------------------
+
+@app.route("/confidence", methods=["GET"])
+def get_score():
+
+    return jsonify({
+        "confidence_score": confidence_score
+    })
+
+
+# -------------------------------
+# Run Server
+# -------------------------------
 
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=6000,
+        port=8000,
         debug=True
     )
