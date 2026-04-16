@@ -21,11 +21,14 @@
         <a href="#">Pricing</a>
         <a href="#">Docs</a>
         <a href="#">FAQ's</a>
-    </nav>
-    <div class="auth">
-        <button class="login">Log In</button>
-        <button class="signup">Sign Up</button>
+        <div id="profileCircle" class="profile hidden">
+    <div class="avatar">👤</div>
+
+    <div class="dropdown">
+        <a href="/logout">Logout</a>
     </div>
+</div>
+    </nav>
 </header>
 
 <!-- ================= HERO ================= -->
@@ -33,8 +36,8 @@
     <span class="tag">+ Introduction</span>
     <h1>Interview Agent<br>AI Interview Agent</h1>
     <p>Practice , Analyze , Get Hired</p>
-    <a href="http://localhost:4000/login.html">
-        <button class="cta">Get Started →</button>
+    <a href="http://localhost:4000/signup.html">
+        <button class="cta" id="getStartedBtn">Get Started →</button>
     </a>
 </section>
 
@@ -75,6 +78,7 @@
         </div>
 
         <div id="analysisResult"></div>
+        <div id="skillsBox"></div>
 
         <form id="interviewForm">
             <input type="text" id="role" placeholder="Enter Role">
@@ -88,6 +92,11 @@
 
             <button type="submit">Generate Question</button>
         </form>
+
+        <div class="ai-video">
+                    <video src="./assets/male-ai.mp4" muted autoplay loop width="500px" height="500px" style="position: relative; top: -100px; left: -40px;"></video>
+                    <span class="ai-status">AI Speaking</span>
+                </div>
 
     </div>
 
@@ -111,7 +120,7 @@
             <!-- ANSWER -->
             <h2>Answer</h2>
             <div id="AnswerBox" class="card">
-                <div id="Answer">Click Start Interview</div>
+                <div id="Answer">Your Answer Here</div>
 
                 <!-- waveform -->
                 <div class="waveform" id="waveform"></div>
@@ -121,14 +130,11 @@
             <div class="video-section">
 
                 <!-- AI VIDEO -->
-                <div class="ai-video">
-                    <video src="./assets/male-ai.mp4" muted autoplay loop width="300px" height="500px" style="position: relative; top: -150px; left: -40px;"></video>
-                    <span class="ai-status">AI Speaking</span>
-                </div>
+                
 
                 <!-- USER VIDEO -->
                 <div class="user-video">
-                    <img id="videoStream">
+                    <img id="videoStream" style="display: block; position: relative; left: -10px; top: -30px; width: 300px; height: 300px;">
                     <span class="recording">● Recording</span>
                 </div>
 
@@ -154,7 +160,8 @@
 
                 <div class="feedback-card score">
                     <h4>Score</h4>
-                    <p>--</p>
+                    <div class="progress">
+
                 </div>
 
             </div>

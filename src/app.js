@@ -82,20 +82,6 @@ async function extractText(filePath) {
   }
 }
 
-app.post("/signup", async (req, res) => {
-  const { username, email, password } = req.body;
-
-  const newUser = new User({
-    username,
-    email,
-    password,
-  });
-
-  await newUser.save();
-
-  res.send("User Created");
-});
-
 /* ======================= UPLOAD ROUTE ======================= */
 
 let skills = [];
@@ -182,39 +168,42 @@ app.post("/form", async (req, res) => {
   }
 });
 
-const generateQuestions = async (skills, role, experience, mode, Number) => {
+const generateQuestions = async (skills, role, experience, mode, count) => {
   const messages = [
     {
       role: "system",
-      content: "You are an expert interview question generator",
+      content:
+        "You are an expert interview question generator that strictly follows output rules.",
     },
     {
       role: "user",
       content: `
-Generate ${mode} interview questions.
+Generate EXACTLY ${count} interview questions.
 
 Candidate Details:
 Role: ${role}
-Experience: ${experience}
-Number : ${Number}
+Experience: ${experience} years
+Mode: ${mode}
 
 Skills:
 ${skills.join(", ")}
 
-Rules:
-- Generate Number interview questions
-- If mode is technical → technical questions
-- If mode is HR → behavioral questions
-- Questions should match experience level
-- Return JSON only
+STRICT RULES:
+- Generate EXACTLY ${count} questions (no more, no less)
+- Do NOT repeat questions
+- If mode = technical → only technical questions
+- If mode = HR → only behavioral questions
+- Match difficulty to experience level
+- Each question must map to a skill when possible
+- Return ONLY valid JSON (no markdown, no explanation)
 
-Format:
+OUTPUT FORMAT:
 [
-{
-"type":"technical",
-"skill":"React",
-"question":"Explain Virtual DOM"
-}
+  {
+    "type": "technical",
+    "skill": "React",
+    "question": "Explain Virtual DOM in React"
+  }
 ]
 `,
     },
@@ -229,7 +218,6 @@ Format:
 
   return JSON.parse(cleaned);
 };
-
 /* ======================= START INTERVIEW ======================= */
 
 app.post("/start-interview", async (req, res) => {
@@ -360,6 +348,7 @@ app.post("/interview-answer", (req, res) => {
 
 app.post("/interview-feedback", async (req, res) => {
   try {
+    // ✅ Get latest report
     const files = fs.readdirSync(reportDir);
 
     if (!files.length) {
@@ -376,10 +365,10 @@ app.post("/interview-feedback", async (req, res) => {
       .sort((a, b) => b.time - a.time)[0].name;
 
     const reportPath = path.join(reportDir, latest);
-
     const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
 
-    const currentQ = report.questions[report.currentQuestion - 1];
+    const currentIndex = report.currentQuestion - 1;
+    const currentQ = report.questions[currentIndex];
 
     if (!currentQ) {
       return res.json({
@@ -387,7 +376,7 @@ app.post("/interview-feedback", async (req, res) => {
       });
     }
 
-    const lastAnswer = report.answers[report.answers.length - 1];
+    const lastAnswer = report.answers?.[report.answers.length - 1];
     const transcript = lastAnswer?.answer;
 
     if (!transcript) {
@@ -396,42 +385,76 @@ app.post("/interview-feedback", async (req, res) => {
       });
     }
 
+    // ✅ Better prompt (STRICT JSON)
     const messages = [
       {
         role: "system",
-        content: "You are technical interviewer",
+        content:
+          "You are a strict technical interviewer. Always return valid JSON only.",
       },
       {
         role: "user",
         content: `
+Evaluate the following answer.
+
 Question:
 ${currentQ.question}
 
 Answer:
 ${transcript}
 
-Return JSON:
+Return ONLY valid JSON. No explanation, no markdown.
+
+Format:
 {
-"score":,
-"strengths":"",
-"improvements":""
+  "score": number (0-10),
+  "communication": "string",
+  "technical": "string",
+  "strengths": ["point1", "point2"],
+  "improvements": ["point1", "point2"]
 }
-`,
+        `,
       },
     ];
 
     const aiResponse = await askAi(messages);
 
-    const cleaned = aiResponse
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+    console.log("🧠 Raw AI Response:", aiResponse);
 
-    const feedback = JSON.parse(cleaned);
+    // ✅ Extract JSON safely
+    let feedback;
 
+    try {
+      const match = aiResponse.match(/{[\s\S]*}/);
+
+      if (!match) {
+        throw new Error("No JSON found in AI response");
+      }
+
+      const cleaned = match[0]
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      feedback = JSON.parse(cleaned);
+    } catch (parseError) {
+      console.error("❌ JSON Parse Failed:", aiResponse);
+
+      // ✅ Fallback so UI never breaks
+      feedback = {
+        score: 5,
+        communication: "Could not properly analyze communication.",
+        technical: "Could not properly analyze technical depth.",
+        strengths: ["Answer received but formatting issue occurred"],
+        improvements: ["Ensure structured response and clarity"],
+      };
+    }
+
+    // ✅ Save feedback
     lastAnswer.feedback = feedback;
-    lastAnswer.time = new Date();
+    lastAnswer.evaluatedAt = new Date();
 
+    // ✅ Move to next question
     report.currentQuestion += 1;
 
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf-8");
@@ -441,8 +464,11 @@ Return JSON:
       nextQuestion: report.questions[report.currentQuestion] || null,
     });
   } catch (error) {
-    console.error("Feedback Error:", error);
-    res.status(500).send("Feedback error");
+    console.error("🔥 Feedback Error:", error);
+
+    res.status(500).json({
+      message: "Feedback processing failed",
+    });
   }
 });
 
@@ -457,47 +483,58 @@ app.post("/register", async (req, res) => {
     const existing = await User.findOne({ email });
     if (existing) return res.send("User already exists");
 
-    await new User({ username, email, password }).save();
+    const newUser = new User({ username, email, password });
+    await newUser.save();
 
-    res.redirect("/login.html");
+    res.redirect("/login");
   } catch (err) {
     console.error(err);
     res.send("Error saving user");
   }
 });
 
-app.use((req, res, next) => {
-  console.log("SESSION EXISTS?", !!req.session);
-  next();
-});
-
+/* ================= LOGIN ================= */
 app.post("/login", async (req, res) => {
   try {
-    console.log("BODY:", req.body);
+    const { email, password } = req.body;
+    const user = await User.findOne({ email, password });
 
-    const { email, password } = req.body || {};
+    if (!user) return res.send("Invalid email or password ❌");
 
-    if (!email || !password) {
-      return res.status(400).send("Email and password required");
-    }
+    req.session.user = user;
 
-    const user = await User.findOne({ email });
-
-    if (!user || user.password !== password) {
-      return res.send("Invalid email or password ❌");
-    }
-
-    req.session.user = {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-    };
-
-    return res.redirect("/index.html"); // ✅ fixed
+    res.redirect("/index.html");
   } catch (err) {
     console.error(err);
-    res.status(500).send("Login error");
+    res.send("Login error");
   }
+});
+// ================= AUTH STATUS =================
+app.get("/auth-status", (req, res) => {
+  if (req.session.user) {
+    res.json({
+      loggedIn: true,
+      user: {
+        username: req.session.user.username,
+        email: req.session.user.email,
+      },
+    });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+/* ================= LOGOUT ================= */
+app.get("/logout", (req, res) => {
+  req.logout?.(() => {});
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Session destroy error:", err);
+      return res.status(500).send("Logout failed");
+    }
+    res.clearCookie("connect.sid");
+    res.redirect("/index.html");
+  });
 });
 
 app.post("/transcribe", upload.single("audio"), async (req, res) => {

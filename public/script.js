@@ -159,6 +159,28 @@ document.getElementById("stopVideo").addEventListener("click", async () => {
   getScore();
 });
 
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const res = await fetch("http://localhost:4000/auth-status");
+    const data = await res.json();
+
+    const getStartedBtn = document.getElementById("getStartedBtn");
+    const profileCircle = document.getElementById("profileCircle");
+
+    if (data.loggedIn) {
+      // 👤 user logged in
+      getStartedBtn.classList.add("hidden");
+      profileCircle.classList.remove("hidden");
+    } else {
+      // 🚫 user NOT logged in
+      getStartedBtn.classList.remove("hidden");
+      profileCircle.classList.add("hidden");
+    }
+  } catch (err) {
+    console.error("Auth check failed", err);
+  }
+});
+
 // Get Confidence Score
 async function getScore() {
   const res = await fetch("http://localhost:8000/confidence");
@@ -172,40 +194,82 @@ async function getScore() {
 async function sendToWhisper() {
   const answerBox = document.getElementById("Answer");
 
-  const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-
-  const formData = new FormData();
-  formData.append("audio", audioBlob, "audio.webm");
-
   try {
-    // show loading state
+    console.log("🎤 Preparing audio...");
+
+    // ✅ Check chunks
+    console.log("Chunks received:", audioChunks);
+
+    if (!audioChunks || audioChunks.length === 0) {
+      console.error("❌ No audio chunks found");
+      answerBox.innerHTML = "No audio recorded ❌";
+      return;
+    }
+
+    // ✅ Create Blob
+    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+    console.log("📦 Blob created:");
+    console.log("➡️ Size:", audioBlob.size);
+    console.log("➡️ Type:", audioBlob.type);
+
+    if (audioBlob.size === 0) {
+      console.error("❌ Blob is empty");
+      answerBox.innerHTML = "Empty audio file ❌";
+      return;
+    }
+
+    // ✅ Prepare FormData
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "audio.webm");
+
+    console.log("📤 Sending request to Whisper API...");
+
+    // UI loading state
     answerBox.innerHTML = "Processing audio... ⏳";
 
+    // ✅ Send request (NO headers for FormData)
     const response = await fetch("http://localhost:5000/transcribe", {
       method: "POST",
       body: formData,
     });
 
+    console.log("📡 Response status:", response.status);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("❌ Server error:", errText);
+      answerBox.innerHTML = "Server error ❌";
+      return;
+    }
+
     const data = await response.json();
+
+    console.log("✅ Response data:", data);
+
+    if (!data.text) {
+      console.error("❌ No transcript in response");
+      answerBox.innerHTML = "No transcript received ❌";
+      return;
+    }
+
     const transcript = data.text;
 
-    console.log("Transcript:", transcript);
+    console.log("📝 Transcript:", transcript);
 
-    // ❗ show answer in UI box
+    // ✅ Show transcript
     answerBox.innerHTML = transcript;
 
-    // optional typing effect (if you already have it)
-    // typeAnswer(answerBox, transcript);
-
-    // send for feedback
+    // ✅ Send for feedback
     await sendFeedback(transcript);
 
     stopBtn.innerText = "Analyzed ✅";
   } catch (error) {
-    console.error("Whisper Error:", error);
+    console.error("🔥 Whisper Error:", error);
     answerBox.innerHTML = "Error processing audio ❌";
   }
 
+  // ✅ Reset chunks after sending
   audioChunks = [];
 }
 
@@ -264,7 +328,7 @@ async function sendFeedback(transcript) {
 <p><b>Technical:</b> ${data.feedback.technical || "N/A"}</p>
 <p><b>Strengths:</b> ${(data.feedback.strengths || []).join(", ")}</p>
 <p><b>Improvements:</b> ${(data.feedback.improvements || []).join(", ")}</p>
-<p><b>Overall Score:</b> ${data.feedback.overallScore || "N/A"}</p>
+// <p><b>Overall Score:</b> ${data.feedback.overallScore || "N/A"}</p>
 `;
 
     if (data.nextQuestion) {
@@ -382,8 +446,10 @@ async function analyzeResume(file) {
   analysisResult.innerHTML = `
     <h3>Resume Analysis</h3>
     <p><strong>Skills Found:</strong></p>
-    <div class="skills">
-      ${data.skills.map((skill) => `<span class="skill">${skill}</span>`).join("")}
+    <div id="skillsBox">
+      ${data.skills
+        .map((skill) => `<span class="skill-tag">${skill}</span>`)
+        .join("")}
     </div>
   `;
 
@@ -392,24 +458,15 @@ async function analyzeResume(file) {
 
 /* ================= Render Analysis ================= */
 
-function renderAnalysis() {
-  analysisResult.innerHTML = "";
+function renderSkills(skills) {
+  const box = document.getElementById("skillsBox");
 
-  if (projects.length > 0) {
-    analysisResult.innerHTML += `
-<h3>Projects</h3>
-<ul>
-${projects.map((p) => `<li>${p}</li>`).join("")}
-</ul>
-`;
-  }
+  box.innerHTML = ""; // clear old
 
-  if (skills.length > 0) {
-    analysisResult.innerHTML += `
-<h3>Skills</h3>
-<div>
-${skills.map((s) => `<span class="skill">${s}</span>`).join("")}
-</div>
-`;
-  }
+  skills.forEach((skill) => {
+    const span = document.createElement("span");
+    span.className = "skill-tag";
+    span.innerText = skill;
+    box.appendChild(span);
+  });
 }
