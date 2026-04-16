@@ -471,6 +471,87 @@ Format:
     });
   }
 });
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const generatePDF = require("../generatereport");
+
+async function getConfidenceScore() {
+  try {
+    const res = await fetch("http://localhost:8000/confidence");
+    const data = await res.json();
+
+    console.log("🎯 Confidence Score:", data.confidence_score);
+
+    return data.confidence_score || 0;
+  } catch (err) {
+    console.error("❌ Error fetching confidence:", err);
+    return 0;
+  }
+}
+
+// ✅ STRICTLY ONLY JSON FILES
+function getLatestReport() {
+  const dir = path.join(__dirname, "..", "reports");
+
+  if (!fs.existsSync(dir)) {
+    throw new Error("Reports folder not found");
+  }
+
+  const files = fs.readdirSync(dir);
+
+  const jsonFiles = files.filter(
+    (f) => f.endsWith(".json") && f !== "report.pdf",
+  );
+
+  if (!jsonFiles.length) {
+    throw new Error("No JSON reports found");
+  }
+
+  const latest = jsonFiles
+    .map((file) => ({
+      name: file,
+      time: fs.statSync(path.join(dir, file)).mtime.getTime(),
+    }))
+    .sort((a, b) => b.time - a.time)[0].name;
+
+  return path.join(dir, latest);
+}
+
+app.get("/download-report", async (req, res) => {
+  try {
+    const reportDir = path.join(__dirname, "..", "reports");
+
+    if (!fs.existsSync(reportDir)) {
+      fs.mkdirSync(reportDir, { recursive: true });
+      return res.status(400).send("No reports available yet");
+    }
+
+    const reportPath = getLatestReport();
+
+    console.log("📄 Using JSON report:", reportPath);
+
+    const confidenceScore = await getConfidenceScore();
+
+    const outputPath = path.join(reportDir, "report.pdf");
+
+    console.log("🎯 Confidence:", confidenceScore);
+
+    // 🚀 Generate PDF (INPUT IS ALWAYS JSON NOW)
+    generatePDF(reportPath, outputPath, confidenceScore);
+
+    // ⏳ wait for file creation
+    setTimeout(() => {
+      if (fs.existsSync(outputPath)) {
+        return res.download(outputPath);
+      } else {
+        return res.status(500).send("PDF generation failed");
+      }
+    }, 700);
+  } catch (error) {
+    console.error("❌ PDF Error:", error);
+    return res.status(500).send(error.message);
+  }
+});
 
 app.post("/register", async (req, res) => {
   try {
