@@ -1,7 +1,6 @@
 import mediapipe as mp
 import cv2
 import time
-import numpy as np
 import math
 from flask import Flask, jsonify, Response
 import whisper
@@ -49,21 +48,18 @@ PITCH_THRESHOLD = 15
 confidence_score = 0
 is_tracking = False
 
-
 # -------------------------------
 # Video Generator
 # -------------------------------
 
 def generate_frames():
-
-    global confidence_score
-    global is_tracking
+    global confidence_score, is_tracking
 
     cap = cv2.VideoCapture(0)
 
     focused_frames = 0
     total_frames = 0
-
+    confidence_score = 0
     is_tracking = True
 
     print("InterVexa Started...")
@@ -71,7 +67,6 @@ def generate_frames():
     while is_tracking:
 
         success, frame = cap.read()
-
         if not success:
             break
 
@@ -84,10 +79,7 @@ def generate_frames():
 
         timestamp = int(time.time() * 1000)
 
-        result = detector.detect_for_video(
-            mp_image,
-            timestamp
-        )
+        result = detector.detect_for_video(mp_image, timestamp)
 
         if result.face_landmarks and result.facial_transformation_matrixes:
 
@@ -96,16 +88,8 @@ def generate_frames():
             landmarks = result.face_landmarks[0]
             matrix = result.facial_transformation_matrixes[0]
 
-            yaw = math.atan2(
-                matrix[0][2],
-                matrix[2][2]
-            ) * (180 / math.pi)
-
-            pitch = math.asin(
-                -matrix[1][2]
-            ) * (180 / math.pi)
-
-            # Eye Tracking
+            yaw = math.atan2(matrix[0][2], matrix[2][2]) * (180 / math.pi)
+            pitch = math.asin(-matrix[1][2]) * (180 / math.pi)
 
             l_left = landmarks[33]
             l_right = landmarks[133]
@@ -116,38 +100,22 @@ def generate_frames():
             r_pupil = landmarks[473]
 
             h_ratio = (
-                (l_pupil.x - l_left.x) /
-                (l_right.x - l_left.x)
+                (l_pupil.x - l_left.x) / (l_right.x - l_left.x)
                 +
-                (r_pupil.x - r_right.x) /
-                (r_left.x - r_right.x)
+                (r_pupil.x - r_right.x) / (r_left.x - r_right.x)
             ) / 2
 
             l_top = landmarks[159]
             l_bottom = landmarks[145]
 
-            v_ratio = (
-                (l_pupil.y - l_top.y) /
-                (l_bottom.y - l_top.y)
-            )
+            v_ratio = (l_pupil.y - l_top.y) / (l_bottom.y - l_top.y)
 
-            head_focused = (
-                abs(yaw) < YAW_THRESHOLD and
-                abs(pitch) < PITCH_THRESHOLD
-            )
+            head_focused = abs(yaw) < YAW_THRESHOLD and abs(pitch) < PITCH_THRESHOLD
 
             gaze_focused = (
-                (0.5 - H_GAZE_SENSITIVITY)
-                <
-                h_ratio
-                <
-                (0.5 + H_GAZE_SENSITIVITY)
+                (0.5 - H_GAZE_SENSITIVITY) < h_ratio < (0.5 + H_GAZE_SENSITIVITY)
                 and
-                (0.5 - V_GAZE_SENSITIVITY)
-                <
-                v_ratio
-                <
-                (0.5 + V_GAZE_SENSITIVITY)
+                (0.5 - V_GAZE_SENSITIVITY) < v_ratio < (0.5 + V_GAZE_SENSITIVITY)
             )
 
             if head_focused and gaze_focused:
@@ -163,6 +131,10 @@ def generate_frames():
                 status = "EYES WANDERING"
                 color = (0, 165, 255)
 
+            # ✅ REAL-TIME CONFIDENCE UPDATE (FIX)
+            if total_frames > 0:
+                confidence_score = (focused_frames / total_frames) * 100
+
             cv2.putText(
                 frame,
                 status,
@@ -173,7 +145,6 @@ def generate_frames():
                 2
             )
 
-        # Encode frame
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
 
@@ -186,13 +157,7 @@ def generate_frames():
 
     cap.release()
 
-    if total_frames > 0:
-        confidence_score = (
-            focused_frames / total_frames
-        ) * 100
-
-    print("Confidence Score:", confidence_score)
-
+    print("Final Confidence Score:", confidence_score)
 
 # -------------------------------
 # Start Video
@@ -200,12 +165,10 @@ def generate_frames():
 
 @app.route("/video")
 def video_feed():
-
     return Response(
         generate_frames(),
         mimetype="multipart/x-mixed-replace; boundary=frame"
     )
-
 
 # -------------------------------
 # Stop Video
@@ -213,36 +176,26 @@ def video_feed():
 
 @app.route("/stop-video", methods=["POST"])
 def stop_video():
-
     global is_tracking
     is_tracking = False
-
-    print("Video Stopped")
 
     return jsonify({
         "message": "Video stopped"
     })
 
-
 # -------------------------------
-# Confidence Score
+# Confidence API
 # -------------------------------
 
 @app.route("/confidence")
 def get_score():
-
     return jsonify({
         "confidence_score": confidence_score
     })
-
 
 # -------------------------------
 # Run Server
 # -------------------------------
 
 if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=8000,
-        debug=True
-    )
+    app.run(host="0.0.0.0", port=8000, debug=True)

@@ -21,44 +21,71 @@
         <a href="#">Pricing</a>
         <a href="#">Docs</a>
         <a href="#">FAQ's</a>
-        <div id="profileCircle" class="profile hidden">
-    <div class="avatar">👤</div>
-
-    <div class="dropdown">
-        <a href="/logout">Logout</a>
-    </div>
-</div>
     </nav>
+    
 </header>
 
 <!-- ================= HERO ================= -->
 <section class="hero">
-    <span class="tag">+ Introduction</span>
-    <h1>Interview Agent<br>AI Interview Agent</h1>
+    <h1>AI Interview Agent</h1>
     <p>Practice , Analyze , Get Hired</p>
-    <a href="http://localhost:4000/signup.html">
-        <button class="cta" id="getStartedBtn">Get Started →</button>
+    <a href="http://localhost:4000/login.html">
+        <button class="cta">Get Started →</button>
     </a>
 </section>
 
 <!-- ================= CARDS ================= -->
 <section class="cards">
     <div class="card">
-        <h3>Integrations</h3>
-        <p>Boost productivity with GitHub, Jira, Zendesk, AWS, Slack, Dropbox.</p>
+        <h3>AI-Powered Question Generation</h3><br>
+        <p>Dynamically generates questions based on- 
+            <ul>
+                <li><b>Job Role</b></li>
+                <li><b>Skills</b></li>
+                <li><b>Experience</b></li>
+            </ul>
+
+        </p>
     </div>
 
     <div class="card">
-        <h3>Database Structure</h3>
-        <p>Streamline efficiency with integrated database systems.</p>
+        <h3>Candidate Interaction</h3>
+        <p><ul>
+            <li><b>Voice + Text-Based Interview</b></li>
+            <p>Candidates can answer via voice or typing.</p>
+            <br>
+            <li><b>Real-Time Feedback</b></li>
+            <p>Helps candidates clarify or expand weak answers during the interview.</p>
+        </ul></p>
     </div>
 
     <div class="card">
-        <h3>Security</h3>
-        <p>Strengthen protection with integrated security systems.</p>
+        <h3>Real-time AI Interaction</h3>
+        <p><ul>
+            <li><b>Adaptive Dialog</b></li>
+            <p>Questions evolve based on your answers.</p>
+            <li><b>Voice-Enabled</b></li>
+            <p>Realistic, hands-free verbal practice.</p>
+        </ul></p>
     </div>
 </section>
+<br>
+<section class="cards">
+    <div class="card">
+        <h3>Resume-Based Customization</h3><br>
+        <p>Our AI parses your specific skills and experience to generate unique, tailored questions that a real recruiter would ask.</p>
+    </div>
 
+    <div class="card">
+        <h3>Sentiment & Tone Analysis</h3><br>
+        <p>Beyond just "correct" answers, InterVexa analyzes your speech patterns, confidence levels, and professional tone.</p>
+    </div>
+
+    <div class="card">
+        <h3>Domain-Specific Tracks</h3><br>
+        <p>Whether it’s Frontend, Backend, or Data Science, access a massive library of industry-standard technical challenges.</p>
+    </div>
+</section>
 <!-- ================= MAIN ================= -->
 <div class="container">
 
@@ -78,7 +105,6 @@
         </div>
 
         <div id="analysisResult"></div>
-        <div id="skillsBox"></div>
 
         <form id="interviewForm">
             <input type="text" id="role" placeholder="Enter Role">
@@ -93,11 +119,6 @@
             <button type="submit">Generate Question</button>
         </form>
 
-        <div class="ai-video">
-                    <video src="./assets/male-ai.mp4" muted autoplay loop width="500px" height="500px" style="position: relative; top: -100px; left: -40px;"></video>
-                    <span class="ai-status">AI Speaking</span>
-                </div>
-
     </div>
 
     <!-- RIGHT SIDE -->
@@ -108,7 +129,6 @@
             <!-- HEADER -->
             <div class="interview-header">
                 <h1>AI Mock Interview</h1>
-                <div class="progress">Q1 / 5</div>
             </div>
 
             <!-- QUESTION -->
@@ -120,7 +140,7 @@
             <!-- ANSWER -->
             <h2>Answer</h2>
             <div id="AnswerBox" class="card">
-                <div id="Answer">Your Answer Here</div>
+                <div id="Answer">Click Start Interview</div>
 
                 <!-- waveform -->
                 <div class="waveform" id="waveform"></div>
@@ -130,11 +150,14 @@
             <div class="video-section">
 
                 <!-- AI VIDEO -->
-                
+                <div class="ai-video">
+                    <video src="./assets/male-ai.mp4" muted autoplay loop width="300px" height="500px" style="position: relative; top: -150px; left: -40px;"></video>
+                    <span class="ai-status">AI Speaking</span>
+                </div>
 
                 <!-- USER VIDEO -->
                 <div class="user-video">
-                    <img id="videoStream" style="display: block; position: relative; left: -10px; top: -30px; width: 300px; height: 300px;">
+                    <img id="videoStream" style="width: 190px; height: 190px;">
                     <span class="recording">● Recording</span>
                 </div>
 
@@ -160,8 +183,7 @@
 
                 <div class="feedback-card score">
                     <h4>Score</h4>
-                    <div class="progress">
-
+                    <p>--</p>
                 </div>
 
             </div>
@@ -202,6 +224,9 @@
     <button id="stopVideo">
         <i class="fa-solid fa-video-slash"></i> Stop Video
     </button>
+
+    <a href="http://localhost:4000/download-report"><button id="report"> Generate Report
+    </button></a>
 
 </div>
 

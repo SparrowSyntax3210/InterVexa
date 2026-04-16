@@ -29,6 +29,8 @@ a, button, .card {
   min-height: 100vh;
 }
 
+/* ================= LOADER ================= */
+
 #skillsBox {
   display: flex;
   flex-wrap: wrap;
@@ -53,7 +55,7 @@ a, button, .card {
   box-shadow: 0 6px 15px rgba(124, 58, 237, 0.5);
 }
 
-/* ================= LOADER ================= */
+
 
 .loader-container {
   position: fixed;
@@ -333,24 +335,7 @@ a, button, .card {
   color: #000;
 }
 
-/* Hide anything with .hidden */
-.profile.hidden {
-    display: none !important;
-}
 
-/* Profile container */
-.profile {
-    display: block;
-}
-
-/* Hero button */
-#getStartedBtn {
-    display: block;
-}
-
-#getStartedBtn.hidden {
-    display: none !important;
-}
 /* =========================================
    Navbar
 ========================================= */
@@ -432,90 +417,6 @@ nav a:hover::after {
    Hero Section
 ========================================= */
 
-.hidden {
-  display: none;
-}
-
-/* ================= GET STARTED BUTTON ================= */
-#getStartedBtn {
-  padding: 10px 18px;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: 0.2s ease;
-}
-
-#getStartedBtn:hover {
-  background: #4338ca;
-  transform: translateY(-1px);
-}
-
-/* ================= PROFILE CIRCLE ================= */
-.profile {
-  position: relative;
-  display: inline-block;
-}
-
-/* Avatar circle */
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #111827;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  transition: 0.2s ease;
-}
-
-.avatar:hover {
-  transform: scale(1.05);
-}
-
-/* ================= DROPDOWN ================= */
-.dropdown {
-  position: absolute;
-  top: 50px;
-  right: 0;
-  background: white;
-  border-radius: 10px;
-  min-width: 120px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  padding: 8px 0;
-
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: 0.2s ease;
-  z-index: 100;
-}
-
-/* show dropdown on hover */
-.profile:hover .dropdown {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-/* dropdown link */
-.dropdown a {
-  display: block;
-  padding: 10px 14px;
-  color: #111827;
-  text-decoration: none;
-  font-size: 14px;
-  transition: 0.2s;
-}
-
-.dropdown a:hover {
-  background: #f3f4f6;
-}
-
 .hero {
     text-align: center;
     padding: 100px 20px;
@@ -533,8 +434,9 @@ nav a:hover::after {
 }
 
 .hero h1 {
-    font-size: 48px;
+    font-size: 55px;
     margin-bottom: 20px;
+    font-style: italic;
 }
 
 .hero p {
@@ -542,6 +444,7 @@ nav a:hover::after {
     max-width: 600px;
     margin: auto;
     margin-bottom: 30px;
+    font-size: 28px;
 }
 
 .cta {
@@ -572,13 +475,14 @@ nav a:hover::after {
 
 .cards {
     display: flex;
+    gap: 10px;
     justify-content: center;
-    gap: 20px;
-    padding: 60px;
+    height: 350px;
+
 }
 
 .card {
-    background: rgba(255,255,255,0.05);
+    background: rgba(234, 234, 12, 0.05);
     border-radius: 15px;
     padding: 30px;
     width: 300px;
@@ -588,17 +492,52 @@ nav a:hover::after {
 
 .card:hover {
     transform: translateY(-10px) scale(1.03);
-    border-color: #6a5cff;
+    border-color: #00D2FF;
     box-shadow: 0 15px 30px rgba(106, 92, 255, 0.3);
 }
 
 .card p {
-    font-size: 14px;
-    color: #aaa;
+    font-size: 18px;
+    color: #1DBDB2;
+    font-style: italic;
+    
+    
+}
+
+.card h3 {
+    font-size: larger;
+    font-size: 25px;
+    color: #FFFFFF;
+}
+
+.card ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 15px;
+    color: lightgreen;
+}
+/* =========================================
+   Base & Reset
+========================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #0d0814;
+    color: #e0e0e0;
+    line-height: 1.6;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 h1, h2 {
-    color: #ffd700;
+    color: cyan;
     margin-bottom: 15px;
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
 }
@@ -607,8 +546,6 @@ h1, h2 {
    PAGE 1: Layout Containers
 ========================================= */
 .container {
-    position: relative;
-    left: 20%;
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
@@ -627,13 +564,12 @@ h1, h2 {
 
 .left {
     flex: 1;
-    width: 40%;
-    gap: 10%;
+    min-width: 300px;
 }
 
 .right {
     flex: 1.5;
-    min-width: 40%;
+    min-width: 350px;
 }
 
 /* Setup Features */
@@ -702,7 +638,8 @@ h1, h2 {
 
 .card:hover {
   transform: translateY(-3px);
-  border-color: #7c3aed;
+  border-color: cyan ;
+  box-shadow: 0 10px 20px rgba(8, 238, 238, 0.2);
 }
 
 /* HEADER */
@@ -728,7 +665,7 @@ h1, h2 {
 }
 
 .difficulty {
-  background: #f59e0b;
+  background: cyan;
   padding: 5px 10px;
   border-radius: 8px;
   font-size: 12px;
@@ -743,15 +680,15 @@ h1, h2 {
 
 .ai-video {
   position: relative;
-  top: 70px;
-  width: 400px;
-  height: 300px;
+  width: 200px;
+  height: 200px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.2);
 }
+
 .user-video{
-  position: relative;
+    position: relative;
   width: 200px;
   height: 200px;
   border-radius: 12px;
@@ -777,51 +714,30 @@ h1, h2 {
   font-size: 12px;
 }
 
+/* FEEDBACK */
+.feedback-cards {
+  display: flex;
+  gap: 15px;
+}
+
 .feedback-card {
-  background: #0f172a;
-  color: #e2e8f0;
-  padding: 20px;
+  flex: 1;
+  padding: 15px;
   border-radius: 12px;
-  max-width: 600px;
-  margin: 20px auto;
-  box-shadow: 0 0 20px rgba(0, 255, 100, 0.1);
-  font-family: 'Segoe UI', sans-serif;
 }
 
-.feedback-card h2 {
-  text-align: center;
-  color: #22c55e;
-  margin-bottom: 15px;
+.feedback-card.good {
+  background: rgba(34,197,94,0.1);
 }
 
-.score {
-  text-align: center;
-  font-size: 18px;
-  margin-bottom: 20px;
-  color: #4ade80;
+.feedback-card.improve {
+  background: rgba(245,158,11,0.1);
 }
 
-.section {
-  margin-bottom: 15px;
+.feedback-card.score {
+  background: rgba(124,58,237,0.2);
 }
 
-.section h3 {
-  margin-bottom: 5px;
-  color: #22c55e;
-}
-
-.section p {
-  margin: 0;
-  line-height: 1.5;
-}
-
-.section ul {
-  padding-left: 20px;
-}
-
-.section li {
-  margin-bottom: 5px;
-}
 /* BUTTONS */
 .interview-actions button {
   border: none;
@@ -1055,4 +971,47 @@ button:hover {
 ========================================= */
 .hidden {
     display: none !important;
+}
+
+.product-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+}
+
+:root {
+  --primary-color: #3498db;
+  --accent-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.button {
+  background-color: var(--primary-color);
+  box-shadow: var(--accent-shadow);
+}
+
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+/* If the screen is smaller than 768px (Mobile) */
+@media (max-width: 768px) {
+  .nav-menu {
+    display: none; /* Hide the menu or change to a burger icon */
+  }
+}
+
+br {
+  height: 20px;
 }
