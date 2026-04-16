@@ -7,8 +7,8 @@
 <title>AI Interview Setup</title>
 
 <link rel="stylesheet" href="style.css">
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 </head>
 
 <body>
@@ -40,7 +40,6 @@
 
 <!-- ================= CARDS ================= -->
 <section class="cards">
-
     <div class="card">
         <h3>Integrations</h3>
         <p>Boost productivity with GitHub, Jira, Zendesk, AWS, Slack, Dropbox.</p>
@@ -55,10 +54,9 @@
         <h3>Security</h3>
         <p>Strengthen protection with integrated security systems.</p>
     </div>
-
 </section>
 
-<!-- ================= MAIN INTERVIEW LAYOUT ================= -->
+<!-- ================= MAIN ================= -->
 <div class="container">
 
     <!-- LEFT SIDE -->
@@ -79,17 +77,16 @@
         <div id="analysisResult"></div>
 
         <form id="interviewForm">
-
             <input type="text" id="role" placeholder="Enter Role">
             <input type="text" id="experience" placeholder="Experience (2 years)">
             <input type="number" id="Number" placeholder="Enter Number of Ques">
+
             <select id="mode">
                 <option value="Technical">Technical Interview</option>
                 <option value="HR">HR Interview</option>
             </select>
 
             <button type="submit">Generate Question</button>
-
         </form>
 
     </div>
@@ -99,32 +96,68 @@
 
         <div class="interview-section">
 
-            <h1>AI Mock Interview</h1>
+            <!-- HEADER -->
+            <div class="interview-header">
+                <h1>AI Mock Interview</h1>
+                <div class="progress">Q1 / 5</div>
+            </div>
 
+            <!-- QUESTION -->
             <h2>Question</h2>
-
-            <div id="questionBox">
-                <p id="question">Click Start Interview</p>
+            <div id="questionBox" class="card">
+                <div id="question">Click Start Interview</div>
             </div>
 
+            <!-- ANSWER -->
             <h2>Answer</h2>
+            <div id="AnswerBox" class="card">
+                <div id="Answer">Click Start Interview</div>
 
-            <div id="AnswerBox">
-                <p id="Answer">Click Start Interview</p>
+                <!-- waveform -->
+                <div class="waveform" id="waveform"></div>
             </div>
 
+            <!-- VIDEO SECTION -->
+            <div class="video-section">
+
+                <!-- AI VIDEO -->
+                <div class="ai-video">
+                    <video src="./assets/male-ai.mp4" muted autoplay loop width="300px" height="500px" style="position: relative; top: -150px; left: -40px;"></video>
+                    <span class="ai-status">AI Speaking</span>
+                </div>
+
+                <!-- USER VIDEO -->
+                <div class="user-video">
+                    <img id="videoStream">
+                    <span class="recording">● Recording</span>
+                </div>
+
+            </div>
+
+            <!-- FEEDBACK -->
             <h2>Feedback</h2>
 
-            <div id="feedback"></div>
-            <div class="video-wrapper">
+            <div id="feedback" class="card"></div>
 
-    <!-- AI Video -->
-    <video src="./assets/male-ai.mp4" autoplay loop width="200" height="200"></video>
+            <!-- EXTRA VISUAL FEEDBACK (SAFE ADDITION) -->
+            <div class="feedback-cards">
 
-    <!-- Live Stream -->
-    <img id="videoStream" width="200" height="200">
+                <div class="feedback-card good">
+                    <h4>Strength</h4>
+                    <p>Clear explanation</p>
+                </div>
 
-</div>
+                <div class="feedback-card improve">
+                    <h4>Improve</h4>
+                    <p>Reduce filler words</p>
+                </div>
+
+                <div class="feedback-card score">
+                    <h4>Score</h4>
+                    <p>--</p>
+                </div>
+
+            </div>
 
         </div>
 
@@ -132,21 +165,38 @@
 
 </div>
 
-<!-- ================= CENTER BUTTON BAR ================= -->
+<!-- ================= ACTION BUTTONS ================= -->
 <div class="interview-actions">
 
-    <button id="startInterview">Start Interview</button>
-    <button id="startBtn">Start Speaking</button>
-    <button id="stopBtn">Stop Speaking</button>
-    <button id="submitAnswer">Submit Answer</button>
-    <button id="nextquestion">Next Question</button>
-    <button id="video">Start Video</button>
-    <button id="stopVideo">Stop Video</button>
+    <button id="startInterview">
+        <i class="fa-solid fa-play"></i> Start Interview
+    </button>
+
+    <button id="startBtn">
+        <i class="fa-solid fa-microphone"></i> Start Speaking
+    </button>
+
+    <button id="stopBtn">
+        <i class="fa-solid fa-stop"></i> Stop Speaking
+    </button>
+
+    <button id="submitAnswer">
+        <i class="fa-solid fa-paper-plane"></i> Submit Answer
+    </button>
+
+    <button id="nextquestion">
+        <i class="fa-solid fa-forward"></i> Next Question
+    </button>
+
+    <button id="video">
+        <i class="fa-solid fa-video"></i> Start Video
+    </button>
+
+    <button id="stopVideo">
+        <i class="fa-solid fa-video-slash"></i> Stop Video
+    </button>
 
 </div>
-
-<!-- ================= VIDEO ================= -->
-
 
 <script src="script.js"></script>
 

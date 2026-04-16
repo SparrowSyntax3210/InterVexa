@@ -48,7 +48,6 @@ let resumeContent = "";
 uploadBox.addEventListener("click", () => {
   resumeUpload.click();
 });
-
 /* FIX HERE → change instead of click */
 resumeUpload.addEventListener("change", (e) => {
   resumeFile = e.target.files[0];
@@ -171,12 +170,17 @@ async function getScore() {
 
 /* ================= Whisper ================= */
 async function sendToWhisper() {
+  const answerBox = document.getElementById("Answer");
+
   const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
 
   const formData = new FormData();
-  formData.append("audio", audioBlob);
+  formData.append("audio", audioBlob, "audio.webm");
 
   try {
+    // show loading state
+    answerBox.innerHTML = "Processing audio... ⏳";
+
     const response = await fetch("http://localhost:5000/transcribe", {
       method: "POST",
       body: formData,
@@ -187,15 +191,52 @@ async function sendToWhisper() {
 
     console.log("Transcript:", transcript);
 
+    // ❗ show answer in UI box
+    answerBox.innerHTML = transcript;
+
+    // optional typing effect (if you already have it)
+    // typeAnswer(answerBox, transcript);
+
+    // send for feedback
     await sendFeedback(transcript);
 
-    // ✅ After analysis complete
     stopBtn.innerText = "Analyzed ✅";
   } catch (error) {
     console.error("Whisper Error:", error);
+    answerBox.innerHTML = "Error processing audio ❌";
   }
 
   audioChunks = [];
+}
+
+function showTypingState(element, text) {
+  let dots = 0;
+
+  element.innerHTML = text;
+
+  const interval = setInterval(() => {
+    dots = (dots + 1) % 4;
+    element.innerHTML = text + ".".repeat(dots);
+  }, 400);
+
+  // stop after 3 seconds (or when replaced)
+  setTimeout(() => clearInterval(interval), 3000);
+}
+
+function typeAnswer(element, text) {
+  element.innerHTML = "";
+
+  const words = text.split(" ");
+  let index = 0;
+
+  const interval = setInterval(() => {
+    element.innerHTML += words[index] + " ";
+    index++;
+
+    if (index >= words.length) {
+      clearInterval(interval);
+    }
+  }, 80); // speed of typing
 }
 /* ================= Feedback ================= */
 

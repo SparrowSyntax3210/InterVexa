@@ -581,6 +581,124 @@ h1, h2 {
     box-shadow: 0 0 20px rgba(176, 101, 255, 0.2);
 }
 
+/* CARD DESIGN */
+.card {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: #7c3aed;
+}
+
+/* HEADER */
+.interview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress {
+  background: #7c3aed;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+/* BADGES */
+.badge {
+  background: #22c55e;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.difficulty {
+  background: #f59e0b;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+/* VIDEO SECTION */
+.video-section {
+  display: flex;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.ai-video, .user-video {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.ai-status {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: #7c3aed;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+}
+
+.recording {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: red;
+  font-size: 12px;
+}
+
+/* FEEDBACK */
+.feedback-cards {
+  display: flex;
+  gap: 15px;
+}
+
+.feedback-card {
+  flex: 1;
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.feedback-card.good {
+  background: rgba(34,197,94,0.1);
+}
+
+.feedback-card.improve {
+  background: rgba(245,158,11,0.1);
+}
+
+.feedback-card.score {
+  background: rgba(124,58,237,0.2);
+}
+
+/* BUTTONS */
+.interview-actions button {
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c3aed, #9333ea);
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.interview-actions button:hover {
+  transform: scale(1.05);
+}
+
 #interviewForm {
     display: flex;
     flex-direction: column;

@@ -314,16 +314,13 @@ app.post("/nextquestion", (req, res) => {
   }
 });
 
-app.post("/interview-answer", async (req, res) => {
+app.post("/interview-answer", (req, res) => {
   try {
     const { text } = req.body;
 
     const files = fs.readdirSync(reportDir);
-
     if (!files.length) {
-      return res.json({
-        answer: "No report found",
-      });
+      return res.status(400).json({ error: "No report found" });
     }
 
     const latestFile = files
@@ -334,19 +331,28 @@ app.post("/interview-answer", async (req, res) => {
       .sort((a, b) => b.time - a.time)[0];
 
     const reportPath = path.join(reportDir, latestFile.name);
+    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
 
-    const report = JSON.parse(fs.readFileSync(reportPath));
+    const currentQ = report.questions[report.currentQuestion];
 
-    const current = report.questions[report.currentQuestion];
+    // ✅ SAVE ANSWER HERE
+    const answerObj = {
+      question: currentQ.question,
+      answer: text,
+      timestamp: new Date(),
+    };
+
+    report.answers.push(answerObj);
+
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
     res.json({
-      question: current.question,
-      answer: current.answer,
-      userAnswer: text,
+      success: true,
+      saved: true,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).send("Answer error");
+    res.status(500).send("Answer save error");
   }
 });
 
@@ -491,6 +497,27 @@ app.post("/login", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send("Login error");
+  }
+});
+
+app.post("/transcribe", upload.single("audio"), async (req, res) => {
+  try {
+    const audioPath = req.file.path;
+
+    const formData = new FormData();
+    formData.append("audio", fs.createReadStream(audioPath));
+
+    const response = await fetch("http://localhost:5000/transcribe", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    return res.json(data);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Transcription failed" });
   }
 });
 
