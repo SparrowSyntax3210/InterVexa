@@ -1,3 +1,24 @@
+/* ================= DOM ================= */
+
+const role = document.getElementById("role");
+const experience = document.getElementById("experience");
+const mode = document.getElementById("mode");
+const stopBtn = document.getElementById("stopBtn");
+const uploadBox = document.getElementById("uploadBox");
+const resumeUpload = document.getElementById("resumeUpload");
+const resumeText = document.getElementById("resumeText");
+const analyzeBtn = document.getElementById("analyzeBtn");
+const startBtn = document.getElementById("startBtn");
+const startInterviewBtn = document.getElementById("startInterview");
+const analysisResult = document.getElementById("analysisResult");
+const nextQuestion = document.getElementById("nextquestion");
+const Redirect = document.getElementById("Redirect");
+
+let resumeFile = null;
+let projects = [];
+let skills = [];
+let resumeContent = "";
+
 /* ================= AI Voice Engine ================= */
 
 function askAIVoice(text) {
@@ -23,29 +44,9 @@ if ("speechSynthesis" in window) {
   };
 }
 
-/* ================= DOM ================= */
-
-const role = document.getElementById("role");
-const experience = document.getElementById("experience");
-const mode = document.getElementById("mode");
-const stopBtn = document.getElementById("stopBtn");
-const uploadBox = document.getElementById("uploadBox");
-const resumeUpload = document.getElementById("resumeUpload");
-const resumeText = document.getElementById("resumeText");
-const analyzeBtn = document.getElementById("analyzeBtn");
-const startBtn = document.getElementById("startBtn");
-const startInterviewBtn = document.getElementById("startInterview");
-const analysisResult = document.getElementById("analysisResult");
-const nextQuestion = document.getElementById("nextquestion");
-
-let resumeFile = null;
-let projects = [];
-let skills = [];
-let resumeContent = "";
-
 /* ================= Upload Resume ================= */
 
-uploadBox.addEventListener("click", () => {
+uploadBox.addEventListener("click", async () => {
   resumeUpload.click();
 });
 /* FIX HERE → change instead of click */
@@ -55,6 +56,10 @@ resumeUpload.addEventListener("change", (e) => {
   if (resumeFile) {
     resumeText.innerText = resumeFile.name;
   }
+});
+
+Redirect.addEventListener("click", () => {
+  window.location.href = "/interview.html";
 });
 
 /* ================= Interview Form ================= */
@@ -444,7 +449,6 @@ async function analyzeResume(file) {
   const analysisResult = document.getElementById("analysisResult");
 
   analysisResult.innerHTML = `
-    <h3>Resume Analysis</h3>
     <p><strong>Skills Found:</strong></p>
     <div id="skillsBox">
       ${data.skills
