@@ -14,9 +14,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+
 app.use(express.static(path.join(__dirname, "../public")));
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views")); // 🔥 go to root
 
 /* ======================= SESSION ======================= */
 
@@ -517,37 +516,40 @@ function getLatestReport() {
 
   return path.join(dir, latest);
 }
-app.get("/report", async (req, res) => {
-  try {
-    const reportPath = getLatestReport();
-    const confidenceScore = await getConfidenceScore();
 
-    const reportData = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
-
-    console.log("DEBUG DATA:", reportData); // optional debug
-
-    res.render("report", {
-      answers: reportData.answers || [],
-      confidence: confidenceScore,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send(err.message);
-  }
-});
-app.get("/download-pdf", async (req, res) => {
+app.get("/download-report", async (req, res) => {
   try {
     const reportDir = path.join(__dirname, "..", "reports");
+
+    if (!fs.existsSync(reportDir)) {
+      fs.mkdirSync(reportDir, { recursive: true });
+      return res.status(400).send("No reports available yet");
+    }
+
     const reportPath = getLatestReport();
 
+    console.log("📄 Using JSON report:", reportPath);
+
     const confidenceScore = await getConfidenceScore();
+
     const outputPath = path.join(reportDir, "report.pdf");
 
-    await generatePDF(reportPath, outputPath, confidenceScore);
+    console.log("🎯 Confidence:", confidenceScore);
 
-    return res.download(outputPath, "report.pdf");
-  } catch (err) {
-    res.status(500).send(err.message);
+    // 🚀 Generate PDF (INPUT IS ALWAYS JSON NOW)
+    generatePDF(reportPath, outputPath, confidenceScore);
+
+    // ⏳ wait for file creation
+    setTimeout(() => {
+      if (fs.existsSync(outputPath)) {
+        return res.download(outputPath);
+      } else {
+        return res.status(500).send("PDF generation failed");
+      }
+    }, 700);
+  } catch (error) {
+    console.error("❌ PDF Error:", error);
+    return res.status(500).send(error.message);
   }
 });
 
@@ -570,10 +572,6 @@ app.post("/register", async (req, res) => {
     console.error(err);
     res.send("Error saving user");
   }
-});
-
-app.get("/redirect", (req, res) => {
-  res.redirect("interview.html");
 });
 
 /* ================= LOGIN ================= */

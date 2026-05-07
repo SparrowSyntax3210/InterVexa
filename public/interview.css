@@ -157,7 +157,7 @@ body {
     width: 500px;
     height: 200px;
     position: relative;
-    left: 500px;
+    left: 1100px;
     top: 30px;
 }
 .AnswerBox {
@@ -275,8 +275,9 @@ body {
 .ai-video {
   position: relative;
   top: -200px;
-  width: 400px;
-  height: 300px;
+  left: 30px;
+  width: 900px;
+  height: 450px;
   border-radius: 12px;
   overflow: hidden;
   border: 5px solid rgba(255,255,255,0.2);
@@ -284,11 +285,11 @@ body {
 
 .user-video{
     position: relative;
-    top: -250px;
-    left: 900px;
+    top: -180px;
+    left: -250px;
   width: 250px;
   height: 250px;
-  border-radius: 12px;
+  border-radius: 32px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.2);
 }
@@ -313,7 +314,14 @@ body {
 .feedback{
     position: relative;
     top: -100px;
+    background-color: white;
 }
+
+#feedback{
+    height: 100px;
+    width: 300px;
+}
+
 
 /* FEEDBACK */
 .feedback-cards {
