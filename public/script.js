@@ -23,9 +23,6 @@ if ("speechSynthesis" in window) {
   };
 }
 
-const marquee = document.getElementById("marquee-content");
-marquee.innerHTML += marquee.innerHTML;
-
 /* ================= DOM ================= */
 
 const role = document.getElementById("role");
