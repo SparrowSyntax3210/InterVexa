@@ -296,16 +296,184 @@ function getLatestReportPath() {
   return path.join(reportDir, latestFile.name);
 }
 
+app.post("/interview-feedback", async (req, res) => {
+  try {
+    /* ================= GET REPORT ================= */
+
+    const files = fs.readdirSync(reportDir);
+
+    if (!files.length) {
+      return res.status(400).json({
+        message: "No report found",
+      });
+    }
+
+    const latest = files
+      .map((file) => ({
+        name: file,
+        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
+      }))
+      .sort((a, b) => b.time - a.time)[0].name;
+
+    const reportPath = path.join(reportDir, latest);
+
+    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
+
+    /* ================= VALIDATION ================= */
+
+    if (!report.answers || !report.answers.length) {
+      return res.status(400).json({
+        message: "No answers found",
+      });
+    }
+
+    /* ================= FEEDBACK ARRAY ================= */
+
+    if (!report.feedbacks) {
+      report.feedbacks = [];
+    }
+
+    /* ================= LOOP THROUGH ANSWERS ================= */
+
+    for (let i = 0; i < report.answers.length; i++) {
+      const answerData = report.answers[i];
+
+      const questionData = report.questions[i];
+
+      /* ===== SKIP EMPTY ANSWERS ===== */
+
+      if (!answerData || !answerData.answer) {
+        continue;
+      }
+
+      /* ===== SKIP ALREADY EVALUATED ===== */
+
+      if (answerData.feedback) {
+        continue;
+      }
+
+      /* ================= AI PROMPT ================= */
+
+      const messages = [
+        {
+          role: "system",
+          content:
+            "You are a strict technical interviewer. Always return valid JSON only.",
+        },
+
+        {
+          role: "user",
+          content: `
+Evaluate the following answer.
+
+Question:
+${questionData?.question || "Unknown Question"}
+
+Answer:
+${answerData.answer}
+
+Return ONLY valid JSON.
+
+Format:
+{
+  "score": number,
+  "communication": "string",
+  "technical": "string",
+  "strengths": ["point1", "point2"],
+  "improvements": ["point1", "point2"]
+  "ratings": [20/100]
+}
+          `,
+        },
+      ];
+
+      /* ================= ASK AI ================= */
+
+      const aiResponse = await askAi(messages);
+
+      console.log("Raw AI Response:", aiResponse);
+
+      let feedback;
+
+      /* ================= PARSE ================= */
+
+      try {
+        const match = aiResponse.match(/{[\s\S]*}/);
+
+        if (!match) {
+          throw new Error("No JSON found");
+        }
+
+        const cleaned = match[0]
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+
+        feedback = JSON.parse(cleaned);
+      } catch (parseError) {
+        console.error("JSON Parse Failed:", aiResponse);
+
+        feedback = {
+          score: 5,
+          communication: "Could not properly analyze communication.",
+          technical: "Could not properly analyze technical depth.",
+          strengths: ["Answer received"],
+          improvements: ["Provide more structured answers"],
+        };
+      }
+
+      /* ================= SAVE FEEDBACK ================= */
+
+      answerData.feedback = feedback;
+
+      answerData.evaluatedAt = new Date();
+
+      report.feedbacks.push({
+        question: questionData?.question,
+        feedback,
+      });
+    }
+
+    /* ================= COMPLETE ================= */
+
+    report.completed = true;
+
+    report.completedAt = new Date();
+
+    /* ================= SAVE REPORT ================= */
+
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf-8");
+
+    console.log("All Feedback Saved");
+
+    /* ================= RESPONSE ================= */
+
+    res.json({
+      success: true,
+
+      message: "Feedback generated successfully",
+
+      report,
+    });
+  } catch (error) {
+    console.error("🔥 Feedback Error:", error);
+
+    res.status(500).json({
+      message: "Feedback processing failed",
+    });
+  }
+});
+
 async function getConfidenceScore() {
   try {
     const res = await fetch("http://localhost:8000/confidence");
     const data = await res.json();
 
-    console.log("🎯 Confidence Score:", data.confidence_score);
+    console.log("Confidence Score:", data.confidence_score);
 
     return data.confidence_score || 0;
   } catch (err) {
-    console.error("❌ Error fetching confidence:", err);
+    console.error("Error fetching confidence:", err);
     return 0;
   }
 }
@@ -321,7 +489,7 @@ app.get("/download-report", async (req, res) => {
 
     const reportPath = getLatestReport();
 
-    console.log("📄 Using JSON report:", reportPath);
+    console.log("Using JSON report:", reportPath);
 
     const confidenceScore = await getConfidenceScore();
 
@@ -329,10 +497,7 @@ app.get("/download-report", async (req, res) => {
 
     console.log("Confidence:", confidenceScore);
 
-    // 🚀 Generate PDF (INPUT IS ALWAYS JSON NOW)
     generatePDF(reportPath, outputPath, confidenceScore);
-
-    // ⏳ wait for file creation
     setTimeout(() => {
       if (fs.existsSync(outputPath)) {
         return res.download(outputPath);
@@ -341,7 +506,7 @@ app.get("/download-report", async (req, res) => {
       }
     }, 700);
   } catch (error) {
-    console.error("❌ PDF Error:", error);
+    console.error("PDF Error:", error);
     return res.status(500).send(error.message);
   }
 });
@@ -373,7 +538,7 @@ app.post("/login", async (req, res) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email, password });
 
-    if (!user) return res.send("Invalid email or password ❌");
+    if (!user) return res.send("Invalid email or password ");
 
     req.session.user = user;
 

@@ -95,6 +95,139 @@ function initButtons() {
     }
   });
 
+  const warningPopup = document.getElementById("warningPopup");
+
+  const warningText = document.getElementById("warningText");
+
+  const warningOkBtn = document.getElementById("warningOkBtn");
+
+  function showWarning(message) {
+    warningText.innerText = message;
+
+    warningPopup.style.display = "flex";
+  }
+
+  warningOkBtn.addEventListener("click", async () => {
+    warningPopup.style.display = "none";
+
+    /* ===== RESTORE FULLSCREEN ===== */
+
+    if (!document.fullscreenElement) {
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch (err) {
+        console.log("Fullscreen Restore Error:", err);
+      }
+    }
+  });
+
+  /* ================= FULLSCREEN START ================= */
+
+  const overlay = document.getElementById("fullscreenOverlay");
+
+  overlay.addEventListener("click", () => {
+    document.documentElement
+      .requestFullscreen()
+      .then(() => {
+        console.log("Fullscreen Enabled");
+
+        overlay.style.display = "none";
+
+        startInterviewFeatures();
+      })
+      .catch((err) => {
+        console.log("Fullscreen Error:", err);
+      });
+  });
+
+  /* ================= INTERVIEW FEATURES ================= */
+
+  function startInterviewFeatures() {
+    /* ===== BLOCK SHORTCUTS ===== */
+
+    document.addEventListener("keydown", preventKeys);
+
+    /* ===== TAB SWITCH ===== */
+
+    window.addEventListener("blur", handleBlur);
+
+    /* ===== PAGE HIDE ===== */
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    /* ===== FULLSCREEN EXIT ===== */
+
+    document.addEventListener("fullscreenchange", handleFullscreen);
+
+    /* ===== FIRST QUESTION ===== */
+
+    const activeCard = getActiveCard();
+
+    if (!activeCard) return;
+
+    const question = activeCard.querySelector("h4").innerText;
+
+    askAIVoice(question);
+  }
+
+  /* ================= BLOCK KEYS ================= */
+
+  function preventKeys(e) {
+    /* ===== BLOCK F11 ===== */
+
+    if (e.key === "F11") {
+      e.preventDefault();
+    }
+
+    /* ===== BLOCK CTRL SHORTCUTS ===== */
+
+    if (e.ctrlKey && ["t", "w", "r", "n", "shift", "Tab"].includes(e.key)) {
+      e.preventDefault();
+    }
+
+    /* ===== BLOCK ALT KEY ===== */
+
+    if (e.altKey) {
+      e.preventDefault();
+
+      showWarning("Alt key is disabled during interview");
+    }
+  }
+
+  /* ================= TAB SWITCH ================= */
+
+  function handleBlur() {
+    console.log("Window Blur Detected");
+
+    showWarning("Tab switching detected!");
+    setTimeout(() => {
+      document.documentElement.requestFullscreen();
+    }, 500);
+  }
+
+  /* ================= VISIBILITY ================= */
+
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      showWarning("You left the interview tab!");
+    }
+    setTimeout(() => {
+      document.documentElement.requestFullscreen();
+    }, 500);
+  }
+
+  /* ================= FULLSCREEN EXIT ================= */
+
+  function handleFullscreen() {
+    if (!document.fullscreenElement) {
+      showWarning("Fullscreen mode is required!");
+
+      setTimeout(() => {
+        document.documentElement.requestFullscreen();
+      }, 500);
+    }
+  }
+
   /* ================= VIDEO TOGGLE ================= */
 
   let isVideoOn = false;
@@ -365,3 +498,72 @@ async function sendToWhisper() {
 
   audioChunks = [];
 }
+
+async function getConfidenceScore() {
+  try {
+    const res = await fetch("http://localhost:8000/confidence");
+    const data = await res.json();
+
+    console.log("Confidence Score:", data.confidence_score);
+
+    return data.confidence_score || 0;
+  } catch (err) {
+    console.error("Error fetching confidence:", err);
+    return 0;
+  }
+}
+
+function getLatestReport() {
+  const dir = path.join(__dirname, "..", "reports");
+
+  if (!fs.existsSync(dir)) {
+    throw new Error("Reports folder not found");
+  }
+
+  const files = fs.readdirSync(dir);
+
+  const jsonFiles = files.filter(
+    (f) => f.endsWith(".json") && f !== "report.pdf",
+  );
+
+  if (!jsonFiles.length) {
+    throw new Error("No JSON reports found");
+  }
+
+  const latest = jsonFiles
+    .map((file) => ({
+      name: file,
+      time: fs.statSync(path.join(dir, file)).mtime.getTime(),
+    }))
+    .sort((a, b) => b.time - a.time)[0].name;
+
+  return path.join(dir, latest);
+}
+
+/* ================= DASHBOARD ================= */
+
+dashboardBtn.addEventListener("click", async () => {
+  try {
+    /* ===== SAVE FINAL FEEDBACK ===== */
+
+    const response = await fetch("http://localhost:4000/interview-feedback", {
+      method: "POST",
+    });
+
+    const data = await response.json();
+
+    console.log("Final Report:", data);
+
+    /* ===== EXIT FULLSCREEN ===== */
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    }
+
+    /* ===== REDIRECT ===== */
+
+    window.location.href = "/dashboard.html";
+  } catch (error) {
+    console.error("Dashboard Redirect Error:", error);
+  }
+});

@@ -43,6 +43,56 @@ body{
     padding:20px;
 }
 
+#fullscreenOverlay{
+  position:fixed;
+  inset:0;
+  background:black;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:99999;
+  cursor:pointer;
+  font-size:32px;
+}
+
+.warning-popup{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.85);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999999;
+}
+
+.warning-box{
+  width:400px;
+  background:#111;
+  border:2px solid red;
+  color:white;
+  padding:30px;
+  border-radius:14px;
+  text-align:center;
+}
+
+.warning-box h2{
+  margin-bottom:15px;
+}
+
+.warning-box p{
+  margin-bottom:20px;
+}
+
+.warning-box button{
+  padding:10px 25px;
+  border:none;
+  background:red;
+  color:white;
+  cursor:pointer;
+  border-radius:8px;
+}
+
 /* WRAPPER */
 
 .interview-wrapper{
