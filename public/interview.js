@@ -2,21 +2,30 @@
 
 let startBtn;
 let stopBtn;
+let videoBtn;
 let questionList;
+let nextQuestion;
+let VoiceBtn;
 
 let mediaRecorder;
 let audioChunks = [];
 
-/* ================= INIT ================= */
+/* ================= DOM READY ================= */
 
 window.addEventListener("DOMContentLoaded", async () => {
+  console.log("JS Loaded");
+
   startBtn = document.getElementById("startBtn");
 
   stopBtn = document.getElementById("stopBtn");
 
+  videoBtn = document.getElementById("videoBtn");
+
+  VoiceBtn = document.getElementById("micBtn");
+
   questionList = document.querySelector(".question-list");
 
-  console.log("Question List:", questionList);
+  nextQuestion = document.getElementById("nextQuestion");
 
   initButtons();
 
@@ -28,9 +37,18 @@ window.addEventListener("DOMContentLoaded", async () => {
 /* ================= BUTTON EVENTS ================= */
 
 function initButtons() {
-  // START RECORDING
-  startBtn.addEventListener("click", async () => {
+  /* ===== START RECORDING ===== */
+
+  VoiceBtn.addEventListener("click", async () => {
+    console.log("Recording Started");
+
     try {
+      const answerBox = getActiveAnswerBox();
+
+      if (answerBox) {
+        answerBox.value = "";
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
@@ -46,20 +64,27 @@ function initButtons() {
       mediaRecorder.onstop = sendToWhisper;
 
       mediaRecorder.start();
-
-      console.log("Recording Started");
     } catch (error) {
       console.error("Mic Error:", error);
     }
   });
 
-  // STOP RECORDING
+  /* ===== STOP RECORDING ===== */
+
   stopBtn.addEventListener("click", () => {
+    console.log("Recording Stopped");
+
     if (mediaRecorder) {
       mediaRecorder.stop();
-
-      console.log("Recording Stopped");
     }
+  });
+
+  /* ===== VIDEO ===== */
+
+  videoBtn.addEventListener("click", () => {
+    const videoStream = document.getElementById("videoStream");
+
+    videoStream.src = "http://localhost:8000/video";
   });
 }
 
@@ -90,7 +115,7 @@ function getActiveQuestionBox() {
 }
 
 function getActiveAnswerBox() {
-  return getActiveCard()?.querySelector("p");
+  return getActiveCard()?.querySelector(".answer-box");
 }
 
 /* ================= LOAD QUESTIONS ================= */
@@ -101,10 +126,11 @@ async function loadQuestions() {
 
     const report = await response.json();
 
-    console.log(report);
+    console.log("REPORT:", report);
 
     if (!report.questions || report.questions.length === 0) {
       console.log("No questions found");
+
       return;
     }
 
@@ -124,7 +150,10 @@ async function loadQuestions() {
         <div class="question-content">
           <h4>${item.question}</h4>
 
-          <p>Waiting for answer...</p>
+          <textarea
+            class="answer-box"
+            placeholder="Your answer..."
+          ></textarea>
         </div>
 
         <span class="question-time">
@@ -135,9 +164,9 @@ async function loadQuestions() {
       questionList.appendChild(card);
     });
 
-    console.log(questionList.innerHTML);
+    console.log("Questions Loaded");
   } catch (error) {
-    console.error(error);
+    console.error("Load Question Error:", error);
   }
 }
 
@@ -165,18 +194,20 @@ async function startInterview() {
   }
 }
 
-/* ================= WHISPER ================= */
+/* ================= SEND TO WHISPER ================= */
 
 async function sendToWhisper() {
   try {
     const answerBox = getActiveAnswerBox();
 
     if (!audioChunks.length) {
-      answerBox.innerHTML = "No Audio ❌";
+      alert("No audio found");
       return;
     }
 
-    answerBox.innerHTML = "Analyzing Answer...";
+    if (answerBox) {
+      answerBox.value = "Transcribing...";
+    }
 
     const audioBlob = new Blob(audioChunks, {
       type: "audio/webm",
@@ -196,21 +227,32 @@ async function sendToWhisper() {
     console.log("TRANSCRIPT:", data);
 
     if (!data.text) {
-      answerBox.innerHTML = "No transcript found ❌";
+      if (answerBox) {
+        answerBox.value = "No transcript found";
+      }
+
       return;
     }
 
-    answerBox.innerText = data.text;
+    /* ===== SHOW TRANSCRIPT ===== */
 
-    await sendFeedback(data.text);
+    if (answerBox) {
+      answerBox.value = data.text;
+    }
+
+    /* ===== USER CAN EDIT NOW ===== */
+
+    const shouldSend = confirm("Submit this answer?");
+
+    if (shouldSend) {
+      await sendFeedback(answerBox.value);
+    }
   } catch (error) {
     console.error("Whisper Error:", error);
   }
 
   audioChunks = [];
-}
-
-/* ================= SEND ANSWER ================= */
+} /* ================= SEND ANSWER ================= */
 
 async function sendFeedback(transcript) {
   try {
@@ -228,31 +270,72 @@ async function sendFeedback(transcript) {
 
     const data = await response.json();
 
-    console.log("NEXT QUESTION:", data);
+    console.log("ANSWER RESPONSE:", data);
 
     const currentCard = getActiveCard();
 
     const nextCard = currentCard?.nextElementSibling;
 
-    // REMOVE CURRENT ACTIVE
     currentCard?.classList.remove("active-question");
 
-    // SET NEXT ACTIVE
     if (nextCard) {
       nextCard.classList.add("active-question");
     }
 
-    // NEXT QUESTION
+    /* ===== NEXT QUESTION ===== */
+
     if (data.nextQuestion && nextCard) {
       const nextQuestionBox = nextCard.querySelector("h4");
 
       nextQuestionBox.innerText = data.nextQuestion.question;
 
+      const nextAnswerBox = nextCard.querySelector(".answer-box");
+
+      if (nextAnswerBox) {
+        nextAnswerBox.value = "";
+      }
+
       askAIVoice(data.nextQuestion.question);
     } else {
-      alert("Interview Completed 🎉");
+      alert("Interview Completed");
     }
   } catch (error) {
     console.error("Answer Error:", error);
   }
+}
+
+/* ================= SUBMIT ANSWER ================= */
+
+const submitAnswer = document.getElementById("submitAnswer");
+
+if (submitAnswer) {
+  submitAnswer.addEventListener("click", async () => {
+    try {
+      const response = await fetch("http://localhost:4000/interview-feedback", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          send: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      console.log("FEEDBACK:", data);
+
+      if (data.feedback) {
+        document.getElementById("feedback").innerText = JSON.stringify(
+          data.feedback,
+          null,
+          2,
+        );
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  });
 }

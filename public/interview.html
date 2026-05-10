@@ -1,241 +1,283 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>InterVexa Interview</title>
 
-    <link rel="stylesheet" href="./interview.css">
+    <link rel="stylesheet" href="./interview.css" />
 
     <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 </head>
 
 <body>
 
-<div class="interview-wrapper">
+    <div class="interview-wrapper">
 
-    <!-- TOP BAR -->
-    <div class="topbar">
+        <!-- TOPBAR -->
+        <div class="topbar">
 
-        <div class="topbar-left">
+            <div class="topbar-left">
 
-            <button class="back-btn">
-                <i class="fa-solid fa-arrow-left"></i>
-            </button>
+                <button class="back-btn">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
 
-            <div>
-                <h1>Technical Interview - </h1>
-                <p>Interview ID: IVX-2025-0710-001 • Duration: 00:24:18</p>
+                <div>
+                    <h1>Technical Interview</h1>
+
+                    <p>
+                        Interview ID: IVX-2025-0710-001 • Duration: 00:24:18
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="topbar-right">
+
+                <button class="dark-btn">
+                    End Interview
+                </button>
+
+                <button class="live-btn">
+
+                    <span class="live-dot"></span>
+
+                    Live Interview
+                </button>
+
             </div>
 
         </div>
 
-        <div class="topbar-right">
+        <!-- MAIN GRID -->
+        <div class="interview-grid">
 
-            <button class="dark-btn">End Interview</button>
+            <!-- LEFT PANEL -->
+            <div class="left-panel">
 
-            <button class="live-btn">
-                <span class="live-dot"></span>
-                Live Interview
-            </button>
+                <!-- VIDEO CARD -->
+                <div class="video-card">
 
-        </div>
+                    <!-- AI BADGE -->
+                    <div class="candidate-badge">
 
-    </div>
-
-    <!-- MAIN GRID -->
-    <div class="interview-grid">
-
-        <!-- LEFT -->
-        <div class="left-panel">
-
-            <!-- VIDEO -->
-            <div class="video-card">
-
-                <div class="candidate-badge">
-                    <span class="dot"></span>
-                    <div>
-                        <h4>Harsh Goel</h4>
-                        <p>Candidate</p>
-                    </div>
-                </div>
-
-                <video
-                    src="./assets/male-ai.mp4"
-                    autoplay
-                    muted
-                    loop
-                    class="main-video">
-                </video>
-
-                <!-- USER CAM -->
-                <div class="user-video">
-
-                    <img id="videoStream">
-
-                    <div class="user-info">
                         <span class="dot"></span>
-
-                        <div>
-                            <h4>You</h4>
-                            <p>Interviewer</p>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- CONTROLS -->
-                <div class="video-controls">
-
-                    <button id="startBtn">
-                        <i class="fa-solid fa-microphone"></i>
-                    </button>
-
-                    <button id="video"> <i class="fa-solid fa-video"></i></button>
-
-                    <img id="videoStream" style=" width:190px; height:190px; border-radius:16px; object-fit:cover; display:none;"/>
-
-                    <button>
-                        <i class="fa-solid fa-desktop"></i>
-                    </button>
-
-                    <button>
-                        <i class="fa-solid fa-ellipsis"></i>
-                    </button>
-
-                    <button id="stopBtn" class="end-call">
-                        <i class="fa-solid fa-phone"></i>
-                    </button>
-
-                </div>
-
-            </div>
-
-            <!-- SUMMARY -->
-            <div class="summary-card">
-
-                <div class="section-title">
-                    <i class="fa-solid fa-chart-simple"></i>
-                    <h3>Interview Summary</h3>
-                </div>
-
-                <p class="summary-text">
-                    Harsh demonstrated strong React fundamentals and component
-                    design skills. He explained state management concepts clearly
-                    and provided thoughtful solutions throughout the interview.
-                </p>
-
-                <div class="summary-grid">
-
-                    <div class="mini-card">
-                        <i class="fa-regular fa-calendar"></i>
-
-                        <div>
-                            <h4>May 8, 2026</h4>
-                            <p>10:00 AM</p>
-                        </div>
-                    </div>
-
-                    <div class="mini-card">
-                        <i class="fa-solid fa-briefcase"></i>
-
-                        <div>
-                            <h4>Frontend Developer</h4>
-                            <p>Full Time</p>
-                        </div>
-                    </div>
-
-                    <div class="mini-card">
-                        <i class="fa-solid fa-users"></i>
 
                         <div>
                             <h4>Harsh Goel</h4>
                             <p>Candidate</p>
                         </div>
+
+                    </div>
+
+                    <!-- AI VIDEO -->
+                    <video src="./assets/male-ai.mp4" autoplay muted loop class="main-video"></video>
+
+                    <!-- USER CAMERA -->
+                    <div class="user-video">
+
+                        <div class="user-info" >
+                            <img id="videoStream" width="270px" height="215px" style="border-radius:16px; object-fit:cover; position: relative;left: -10px; top: 30px;" />
+
+                            <span class="dot"></span>
+
+                            <div>
+                                <h4>You</h4>
+                                <p>Interviewer</p>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- CONTROLS -->
+                    <div class="video-controls">
+
+                        <button id="micBtn">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+                        <button id="stopBtn">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+                        
+
+                        <button id="videoBtn"><i class="fa-solid fa-video"></i></button>
+
+                        <button>
+                            <i class="fa-solid fa-desktop"></i>
+                        </button>
+
+                        <button>
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </button>
+
+                        <button id="stopBtn" class="end-call">
+                            <i class="fa-solid fa-phone"></i>
+                        </button>
+
+                        <button id="startBtn" style="display: none;">
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <!-- SUMMARY -->
+                <div class="summary-card">
+
+                    <div class="section-title">
+
+                        <i class="fa-solid fa-chart-simple"></i>
+
+                        <h3>Interview Summary</h3>
+
+                    </div>
+
+                    <p class="summary-text">
+                        Harsh demonstrated strong React fundamentals and
+                        component design skills.
+                    </p>
+
+                    <div class="summary-grid">
+
+                        <div class="mini-card">
+
+                            <i class="fa-regular fa-calendar"></i>
+
+                            <div>
+                                <h4>May 8, 2026</h4>
+                                <p>10:00 AM</p>
+                            </div>
+
+                        </div>
+
+                        <div class="mini-card">
+
+                            <i class="fa-solid fa-briefcase"></i>
+
+                            <div>
+                                <h4>Frontend Developer</h4>
+                                <p>Full Time</p>
+                            </div>
+
+                        </div>
+
+                        <div class="mini-card">
+
+                            <i class="fa-solid fa-users"></i>
+
+                            <div>
+                                <h4>Harsh Goel</h4>
+                                <p>Candidate</p>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- INSIGHTS -->
+                <div class="insight-card">
+
+                    <div class="section-title">
+
+                        <i class="fa-solid fa-wave-square"></i>
+
+                        <h3>AI Interview Insights</h3>
+
+                    </div>
+
+                    <div class="insight-grid">
+
+                        <div class="score-box">
+                            <h5>Overall Score</h5>
+                            <h2>87%</h2>
+                            <span>Excellent</span>
+                        </div>
+
+                        <div class="score-box">
+                            <h5>Technical Skills</h5>
+                            <h2>90%</h2>
+                            <span>Excellent</span>
+                        </div>
+
+                        <div class="score-box">
+                            <h5>Communication</h5>
+                            <h2>85%</h2>
+                            <span>Good</span>
+                        </div>
+
+                        <div class="score-box">
+                            <h5>Problem Solving</h5>
+                            <h2>86%</h2>
+                            <span>Good</span>
+                        </div>
+
                     </div>
 
                 </div>
 
             </div>
 
-            <!-- INSIGHTS -->
-            <div class="insight-card">
+            <!-- RIGHT PANEL -->
+            <div class="right-panel">
 
-                <div class="section-title">
-                    <i class="fa-solid fa-wave-square"></i>
-                    <h3>AI Interview Insights</h3>
-                </div>
+                <!-- QUESTION PANEL -->
+                <div class="question-panel">
 
-                <div class="insight-grid">
+                    <div class="tabs">
 
-                    <div class="score-box">
-                        <h5>Overall Score</h5>
-                        <h2>87%</h2>
-                        <span>Excellent</span>
+                        <button class="active-tab">
+                            Question List
+                        </button>
+
+                        <button>
+                            Timeline
+                        </button>
+
+                        <button>
+                            Highlights
+                        </button>
+
                     </div>
 
-                    <div class="score-box">
-                        <h5>Technical Skills</h5>
-                        <h2>90%</h2>
-                        <span>Excellent</span>
-                    </div>
-
-                    <div class="score-box">
-                        <h5>Communication</h5>
-                        <h2>85%</h2>
-                        <span>Good</span>
-                    </div>
-
-                    <div class="score-box">
-                        <h5>Problem Solving</h5>
-                        <h2>86%</h2>
-                        <span>Good</span>
-                    </div>
+                    <div class="question-list"></div>
+                    <textarea
+  class="answer-box"
+  placeholder="Your answer..."
+></textarea>
 
                 </div>
 
-            </div>
+                <!-- NOTES -->
+                <div class="notes-card">
 
-        </div>
+                    <div class="section-title">
 
-        <!-- RIGHT -->
-        <div class="right-panel">
+                        <i class="fa-regular fa-pen-to-square"></i>
 
-            <!-- QUESTION PANEL -->
-            <div class="question-panel">
+                        <h3>AI Note Taking</h3>
 
-                <div class="tabs">
+                    </div>
 
-                    <button class="active-tab">Question List</button>
-                    <button>Timeline</button>
-                    <button>Highlights</button>
+                    <p>
+                        Candidate shows strong understanding of React concepts.
+                    </p>
+
+                    <p>
+                        Good problem-solving approach and clean coding practices.
+                    </p>
+
+                    <p>
+                        Recommended for next round.
+                    </p>
 
                 </div>
-
-                <div class="question-list"></div>
-
-            </div>
-
-            <!-- NOTES -->
-            <div class="notes-card">
-
-                <div class="section-title">
-                    <i class="fa-regular fa-pen-to-square"></i>
-                    <h3>AI Note Taking</h3>
-                </div>
-
-                <p>
-                    Candidate shows strong understanding of React concepts.
-                </p>
-
-                <p>
-                    Good problem-solving approach and clean coding practices.
-                </p>
-
-                <p>
-                    Recommended for next round.
-                </p>
 
             </div>
 
@@ -243,9 +285,8 @@
 
     </div>
 
-</div>
-
-<script src="./script.js"></script>
+    <script src="./interview.js"></script>
 
 </body>
+
 </html>

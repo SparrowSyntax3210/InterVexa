@@ -4,19 +4,17 @@ import whisper
 import os
 import json
 from datetime import datetime
-import subprocess   # ✅ better than os.system
+import subprocess   
 
 # Add FFmpeg path
 os.environ["PATH"] += os.pathsep + r"C:\ffmpeg\bin"
 
 app = Flask(__name__)
-
-# ✅ Allow your frontend (change if needed)
 CORS(app, origins=["http://localhost:4000"])
 
-print("⏳ Loading Whisper model...")
+print("Loading Whisper model...")
 model = whisper.load_model("base")
-print("✅ Whisper model loaded")
+print("Whisper model loaded")
 
 
 @app.route("/")
@@ -27,27 +25,24 @@ def home():
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
     try:
-        print("\n🔥 Request received")
+        print("\Request received")
         print("FILES:", request.files)
 
-        # ✅ Check audio exists
         if 'audio' not in request.files:
-            print("❌ No audio in request")
+            print("No audio in request")
             return jsonify({"error": "No audio"}), 400
 
         file = request.files['audio']
-        print("✅ Audio received:", file.filename)
+        print("Audio received:", file.filename)
 
-        # ✅ Unique filenames (avoid overwrite bugs)
         timestamp = str(int(datetime.now().timestamp()))
         filepath = f"audio_{timestamp}.webm"
         wavpath = f"audio_{timestamp}.wav"
 
         # Save file
         file.save(filepath)
-        print("💾 Saved:", filepath)
+        print("Saved:", filepath)
 
-        # ✅ Convert using subprocess (better debugging)
         command = [
             "ffmpeg", "-y",
             "-i", filepath,
@@ -59,16 +54,15 @@ def transcribe():
         result = subprocess.run(command, capture_output=True, text=True)
 
         if result.returncode != 0:
-            print("❌ FFmpeg Error:", result.stderr)
+            print("FFmpeg Error:", result.stderr)
             return jsonify({"error": "Audio conversion failed"}), 500
 
-        print("🎧 Converted to WAV:", wavpath)
+        print("Converted to WAV:", wavpath)
 
-        # ✅ Transcribe
         result = model.transcribe(wavpath)
         text = result.get("text", "")
 
-        print("📝 Transcript:", text)
+        print("Transcript:", text)
 
         # ===== Save Answer to Report =====
         report_dir = os.path.join(os.getcwd(), "reports")
@@ -108,9 +102,8 @@ def transcribe():
                     with open(report_path, "w") as f:
                         json.dump(report, f, indent=4)
 
-                    print("📊 Answer saved:", current_question["question"])
+                    print("Answer saved:", current_question["question"])
 
-        # ✅ Cleanup (optional but good)
         if os.path.exists(filepath):
             os.remove(filepath)
         if os.path.exists(wavpath):
@@ -119,7 +112,7 @@ def transcribe():
         return jsonify({"text": text})
 
     except Exception as e:
-        print("🔥 SERVER ERROR:", str(e))
+        print("SERVER ERROR:", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
