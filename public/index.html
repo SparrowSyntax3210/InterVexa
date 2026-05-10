@@ -13,224 +13,346 @@
 
 <body>
 
-<!-- ================= HEADER ================= -->
-<header>
-    <div class="logo">InterVexa</div>
-    <nav>
-        <a href="#">Enterprise</a>
-        <a href="#">Pricing</a>
-        <a href="#">Docs</a>
-        <a href="#">FAQ's</a>
+<header class="nav">
+
+    <!-- Logo -->
+    <div class="logo">
+        <img src="./assets/logo.jpeg">
+        <h1>InterVexa</h1>
+    </div>
+
+    <!-- Center Navigation -->
+    <nav class="nav-center">
+        <ul>
+            <li><a href="#">Enterprise</a></li>
+            <li><a href="#">Pricing</a></li>
+            <li><a href="#">Docs</a></li>
+            <li><a href="#">FAQ's</a></li>
+            <li><a href="#">About</a></li>
+        </ul>
     </nav>
-    
+
+    <!-- Right Icons -->
+    <div class="nav-right">
+        <ul>
+            <li> </li>
+        </ul>
+    </div>
+
 </header>
 
-<!-- ================= HERO ================= -->
+<!-- ================= HERO SECTION ================= -->
+
 <section class="hero">
-    <h1>AI Interview Agent</h1>
-    <p>Practice , Analyze , Get Hired</p>
-    <a href="http://localhost:4000/login.html">
-        <button class="cta">Get Started →</button>
-    </a>
+
+<img src="../public/assets/splie.png" alt="">
+<div class="hero-left">
+ <br><br>
+
+
+<h1 class="hero-title">
+<span>Built to make interviews </span>less stressful ad more acheivale<br>
+</h1>
+
+<p class="hero-desc">
+Practice real interview scenarios, receive instant AI-powered 
+feedback, and improve your confidence before facing recruiters.
+</p>
+
+
+<div class="hero-stats">
+
+<div class="stat">
+<h2>150+</h2>
+<p>Practice Sessions</p>
+</div>
+
+<div class="stat">
+<h2>80+</h2>
+<p>Companies Covered</p>
+</div>
+
+<div class="stat">
+<h2>15+</h2>
+<p>AI Features</p>
+</div>
+
+</div>
+<a href="/signup"><button class="hero-btn"> 
+Get Started
+</button>
+</a>
+
+</div>
+
+
+<div class="hero-right">
+<spline-viewer 
+url="https://prod.spline.design/FZPKYmrMj1QQYvGi/scene.splinecode">
+</spline-viewer>
+
+</div>
+
+</section>
+
+<section class="why-us">
+
+    <h1 class="title">Why InterVexa?</h1>
+
+    <div class="marquee">
+        <div class="marquee-content" id="marquee-content">
+
+            <span>AI Powered Interview Preparation</span>
+            <span>Resume Analysis & Smart Suggestions</span>
+            <span>Real-Time Mock Interviews</span>
+            <span>Confidence Building Experience</span>
+            <span>Track Your Performance Growth</span>
+            <span>Designed For Students & Developers</span>
+
+        </div>
+    </div>
+
 </section>
 
 <!-- ================= CARDS ================= -->
 <section class="cards">
-    <div class="card">
-        <h3>AI-Powered Question Generation</h3><br>
-        <p>Dynamically generates questions based on- 
-            <ul>
-                <li><b>Job Role</b></li>
-                <li><b>Skills</b></li>
-                <li><b>Experience</b></li>
-            </ul>
 
-        </p>
-    </div>
+<div class="card">
+<h3>AI-Powered Question Generation</h3>
 
-    <div class="card">
-        <h3>Candidate Interaction</h3>
-        <p><ul>
-            <li><b>Voice + Text-Based Interview</b></li>
-            <p>Candidates can answer via voice or typing.</p>
-            <br>
-            <li><b>Real-Time Feedback</b></li>
-            <p>Helps candidates clarify or expand weak answers during the interview.</p>
-        </ul></p>
-    </div>
+<ul>
+<li><b>Job Role Based</b></li>
+<li><b>Skill Based</b></li>
+<li><b>Experience Based</b></li>
+</ul>
 
-    <div class="card">
-        <h3>Real-time AI Interaction</h3>
-        <p><ul>
-            <li><b>Adaptive Dialog</b></li>
-            <p>Questions evolve based on your answers.</p>
-            <li><b>Voice-Enabled</b></li>
-            <p>Realistic, hands-free verbal practice.</p>
-        </ul></p>
-    </div>
-</section>
-<br>
-<section class="cards">
-    <div class="card">
-        <h3>Resume-Based Customization</h3><br>
-        <p>Our AI parses your specific skills and experience to generate unique, tailored questions that a real recruiter would ask.</p>
-    </div>
+</div>
 
-    <div class="card">
-        <h3>Sentiment & Tone Analysis</h3><br>
-        <p>Beyond just "correct" answers, InterVexa analyzes your speech patterns, confidence levels, and professional tone.</p>
-    </div>
 
-    <div class="card">
-        <h3>Domain-Specific Tracks</h3><br>
-        <p>Whether it’s Frontend, Backend, or Data Science, access a massive library of industry-standard technical challenges.</p>
-    </div>
+<div class="card">
+<h3>Candidate Interaction</h3>
+
+<ul>
+<li><b>Voice + Text Interview</b></li>
+<li><b>Real-Time Feedback</b></li>
+</ul>
+
+<p>
+Candidates can answer via voice or typing with 
+instant AI suggestions.
+</p>
+
+</div>
+
+
+<div class="card">
+<h3>Real-time AI Interaction</h3>
+
+<ul>
+<li><b>Adaptive Dialog</b></li>
+<li><b>Voice Enabled</b></li>
+</ul>
+
+<p>
+Questions evolve dynamically based on your responses.
+</p>
+
+</div>
+
+<div class="card">
+<h3>AI-Powered Question Generation</h3>
+
+<ul>
+<li><b>Job Role Based</b></li>
+<li><b>Skill Based</b></li>
+<li><b>Experience Based</b></li>
+</ul>
+
+</div>
+
+
+<div class="card">
+<h3>Candidate Interaction</h3>
+
+<ul>
+<li><b>Voice + Text Interview</b></li>
+<li><b>Real-Time Feedback</b></li>
+</ul>
+
+<p>
+Candidates can answer via voice or typing with 
+instant AI suggestions.
+</p>
+
+</div>
+
+
+<div class="card">
+<h3>Real-time AI Interaction</h3>
+
+<ul>
+<li><b>Adaptive Dialog</b></li>
+<li><b>Voice Enabled</b></li>
+</ul>
+
+<p>
+Questions evolve dynamically based on your responses.
+</p>
+
+</div>
+
 </section>
 <!-- ================= MAIN ================= -->
 <div class="container">
 
     <!-- LEFT SIDE -->
-    <div class="left">
+    <div class="page">
 
-        <h2>Interview Setup</h2>
+    <h1 class="heading" style="text-align: center;">AI Interview Setup</h1>
 
-        <div class="upload-box" id="uploadBox">
-            <i class="fa-solid fa-file-arrow-up"></i>
-            <input type="file" id="resumeUpload" hidden>
-            <p id="resumeText">Click to Upload Resume</p>
+    <div class="main">
 
-            <button type="button" id="analyzeBtn">
-                Analyze Resume
-            </button>
-        </div>
+        <!-- LEFT -->
+       <div class="upload-section">
+  <div class="upload-box" id="uploadBox">
+      <i class="fa-solid fa-file-arrow-up"></i>
+      <p id="resumeText">Upload Your Resume</p>
+      <button id="analyzeBtn">Analyze Resume</button>
+      
+<div id="analysisResult"></div>
+  </div>
+</div>
 
-        <div id="analysisResult"></div>
+<input 
+  type="file" 
+  id="resumeUpload" 
+  accept=".pdf,.doc,.docx" 
+  style="display:none"
+/>
+ 
 
+        <!-- RIGHT -->
         <form id="interviewForm">
-            <input type="text" id="role" placeholder="Enter Role">
-            <input type="text" id="experience" placeholder="Experience (2 years)">
-            <input type="number" id="Number" placeholder="Enter Number of Ques">
 
-            <select id="mode">
-                <option value="Technical">Technical Interview</option>
-                <option value="HR">HR Interview</option>
+            <div class="input-group">
+                <input type="text" placeholder=" " required>
+                <label>Role</label>
+            </div>
+
+            <div class="input-group">
+                <input type="text" placeholder=" " required>
+                <label>Experience</label>
+            </div>
+
+            <div class="input-group">
+                <input type="number" placeholder=" " required>
+                <label>Number of Questions</label>
+            </div>
+
+            <select>
+                <option>Technical Interview</option>
+                <option>HR Interview</option>
             </select>
 
-            <button type="submit">Generate Question</button>
+            <button type="submit">Generate Questions</button>
+            <a href="/interview.html"><button id="Redirect" style="color: black;">Go To Interview</button></a>
+
         </form>
 
     </div>
+</div>
+</div>
 
-    <!-- RIGHT SIDE -->
-    <div class="right">
+<footer class="footer">
 
-        <div class="interview-section">
+    <div class="footer-container">
 
-            <!-- HEADER -->
-            <div class="interview-header">
-                <h1>AI Mock Interview</h1>
+        <!-- LEFT -->
+        <div class="logo-section">
+
+            <div class="logo">
+                <div class="logo-circle"></div>
+                <h2>InterVexa</h2>
             </div>
 
-            <!-- QUESTION -->
-            <h2>Question</h2>
-            <div id="questionBox" class="card">
-                <div id="question">Click Start Interview</div>
+            <p>
+                AI-powered interview preparation platform
+                built to boost your confidence and help
+                you get hired faster.
+            </p>
+
+            <div class="socials">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-linkedin-in"></i></a>
             </div>
 
-            <!-- ANSWER -->
-            <h2>Answer</h2>
-            <div id="AnswerBox" class="card">
-                <div id="Answer">Click Start Interview</div>
+        </div>
 
-                <!-- waveform -->
-                <div class="waveform" id="waveform"></div>
-            </div>
+        <!-- COLUMN -->
+        <div class="footer-column">
+            <h3>Platform</h3>
 
-            <!-- VIDEO SECTION -->
-            <div class="video-section">
+            <ul>
+                <li><a href="#">Enterprise</a></li>
+                <li><a href="#">Pricing</a></li>
+                <li><a href="#">Features</a></li>
+                <li><a href="#">AI Interview Setup</a></li>
+            </ul>
+        </div>
 
-                <!-- AI VIDEO -->
-                <div class="ai-video">
-                    <video src="./assets/male-ai.mp4" muted autoplay loop width="300px" height="500px" style="position: relative; top: -150px; left: -40px;"></video>
-                    <span class="ai-status">AI Speaking</span>
-                </div>
+        <!-- COLUMN -->
+        <div class="footer-column">
+            <h3>Resources</h3>
 
-                <!-- USER VIDEO -->
-                <div class="user-video">
-                    <img id="videoStream" style="width: 190px; height: 190px;">
-                    <span class="recording">● Recording</span>
-                </div>
+            <ul>
+                <li><a href="#">Documentation</a></li>
+                <li><a href="#">Guides</a></li>
+                <li><a href="#">Changelog</a></li>
+                <li><a href="#">Help Center</a></li>
+            </ul>
+        </div>
 
-            </div>
+        <!-- COLUMN -->
+        <div class="footer-column">
+            <h3>Company</h3>
 
-            <!-- FEEDBACK -->
-            <h2>Feedback</h2>
+            <ul>
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Careers</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Terms of Service</a></li>
+            </ul>
+        </div>
 
-            <div id="feedback" class="card"></div>
+        <!-- NEWSLETTER -->
+        <div class="footer-column newsletter">
 
-            <!-- EXTRA VISUAL FEEDBACK (SAFE ADDITION) -->
-            <div class="feedback-cards">
+            <h3>Stay Updated</h3>
 
-                <div class="feedback-card good">
-                    <h4>Strength</h4>
-                    <p>Clear explanation</p>
-                </div>
+            <p>
+                Subscribe to get the latest updates
+                and tips.
+            </p>
 
-                <div class="feedback-card improve">
-                    <h4>Improve</h4>
-                    <p>Reduce filler words</p>
-                </div>
-
-                <div class="feedback-card score">
-                    <h4>Score</h4>
-                    <p>--</p>
-                </div>
-
+            <div class="email-box">
+                <input type="email" placeholder="Enter your email">
+                <button>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
             </div>
 
         </div>
 
     </div>
 
-</div>
+    <div class="bottom-line"></div>
 
-<!-- ================= ACTION BUTTONS ================= -->
-<div class="interview-actions">
+</footer>
 
-    <button id="startInterview">
-        <i class="fa-solid fa-play"></i> Start Interview
-    </button>
 
-    <button id="startBtn">
-        <i class="fa-solid fa-microphone"></i> Start Speaking
-    </button>
-
-    <button id="stopBtn">
-        <i class="fa-solid fa-stop"></i> Stop Speaking
-    </button>
-
-    <button id="submitAnswer">
-        <i class="fa-solid fa-paper-plane"></i> Submit Answer
-    </button>
-
-    <button id="nextquestion">
-        <i class="fa-solid fa-forward"></i> Next Question
-    </button>
-
-    <button id="video">
-        <i class="fa-solid fa-video"></i> Start Video
-    </button>
-
-    <button id="stopVideo">
-        <i class="fa-solid fa-video-slash"></i> Stop Video
-    </button>
-
-    <a href="http://localhost:4000/download-report"><button id="report"> Generate Report
-    </button></a>
-
-</div>
-<div class="EXTRA-page"></div>
-
+<script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.86/build/spline-viewer.js"></script>
 <script src="script.js"></script>
 
 </body>
