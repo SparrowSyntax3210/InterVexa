@@ -3,9 +3,9 @@
 let startBtn;
 let stopBtn;
 let videoBtn;
-let questionList;
-let nextQuestion;
 let VoiceBtn;
+
+let questionList;
 
 let mediaRecorder;
 let audioChunks = [];
@@ -25,8 +25,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   questionList = document.querySelector(".question-list");
 
-  nextQuestion = document.getElementById("nextQuestion");
-
   initButtons();
 
   await loadQuestions();
@@ -34,15 +32,37 @@ window.addEventListener("DOMContentLoaded", async () => {
   await startInterview();
 });
 
-/* ================= BUTTON EVENTS ================= */
+/* ================= BUTTONS ================= */
 
 function initButtons() {
   /* ===== START RECORDING ===== */
 
+  /* ================= MIC TOGGLE ================= */
+
+  let isRecording = false;
+
   VoiceBtn.addEventListener("click", async () => {
-    console.log("Recording Started");
+    /* ===== STOP RECORDING ===== */
+
+    if (isRecording && mediaRecorder) {
+      mediaRecorder.stop();
+
+      VoiceBtn.classList.remove("recording");
+
+      VoiceBtn.innerHTML = `<i class="fa-solid fa-microphone"></i>`;
+
+      isRecording = false;
+
+      console.log("Recording Stopped");
+
+      return;
+    }
+
+    /* ===== START RECORDING ===== */
 
     try {
+      console.log("Recording Started");
+
       const answerBox = getActiveAnswerBox();
 
       if (answerBox) {
@@ -64,27 +84,54 @@ function initButtons() {
       mediaRecorder.onstop = sendToWhisper;
 
       mediaRecorder.start();
+
+      VoiceBtn.classList.add("recording");
+
+      VoiceBtn.innerHTML = `<i class="fa-solid fa-stop"></i>`;
+
+      isRecording = true;
     } catch (error) {
       console.error("Mic Error:", error);
     }
   });
 
-  /* ===== STOP RECORDING ===== */
+  /* ================= VIDEO TOGGLE ================= */
 
-  stopBtn.addEventListener("click", () => {
-    console.log("Recording Stopped");
+  let isVideoOn = false;
 
-    if (mediaRecorder) {
-      mediaRecorder.stop();
-    }
-  });
+  /* ===== DEFAULT VIDEO ON ===== */
 
-  /* ===== VIDEO ===== */
+  const videoStream = document.getElementById("videoStream");
+
+  videoStream.src = "http://localhost:8000/video";
+
+  /* ================= TOGGLE ================= */
 
   videoBtn.addEventListener("click", () => {
-    const videoStream = document.getElementById("videoStream");
+    /* ===== TURN OFF ===== */
 
-    videoStream.src = "http://localhost:8000/video";
+    if (isVideoOn) {
+      videoStream.src = "";
+
+      videoBtn.classList.add("off");
+
+      videoBtn.innerHTML = `<i class="fa-solid fa-video-slash"></i>`;
+
+      isVideoOn = false;
+
+      console.log("Video Stopped");
+    } else {
+      /* ===== TURN ON ===== */
+      videoStream.src = "http://localhost:8000/video";
+
+      videoBtn.classList.remove("off");
+
+      videoBtn.innerHTML = `<i class="fa-solid fa-video"></i>`;
+
+      isVideoOn = true;
+
+      console.log("Video Started");
+    }
   });
 }
 
@@ -104,14 +151,10 @@ function askAIVoice(text) {
   synth.speak(utterance);
 }
 
-/* ================= ACTIVE QUESTION ================= */
+/* ================= ACTIVE CARD ================= */
 
 function getActiveCard() {
   return document.querySelector(".question-card.active-question");
-}
-
-function getActiveQuestionBox() {
-  return getActiveCard()?.querySelector("h4");
 }
 
 function getActiveAnswerBox() {
@@ -143,25 +186,111 @@ async function loadQuestions() {
         index === 0 ? "question-card active-question" : "question-card";
 
       card.innerHTML = `
-        <div class="question-number">
-          ${String(index + 1).padStart(2, "0")}
-        </div>
 
-        <div class="question-content">
-          <h4>${item.question}</h4>
+          <div class="question-number">
+            ${String(index + 1).padStart(2, "0")}
+          </div>
 
-          <textarea
-            class="answer-box"
-            placeholder="Your answer..."
-          ></textarea>
-        </div>
+          <div class="question-content">
 
-        <span class="question-time">
-          LIVE
-        </span>
-      `;
+            <h4>
+              ${item.question}
+            </h4>
+
+            <div class="answer-wrapper">
+
+              <textarea
+                class="answer-box"
+                placeholder="Your answer..."
+              ></textarea>
+
+              <button class="submitAnswer">
+                Submit Answer
+              </button>
+
+            </div>
+
+          </div>
+
+          <span class="question-time">
+            LIVE
+          </span>
+
+        `;
 
       questionList.appendChild(card);
+
+      /* ================= SUBMIT ================= */
+
+      const submitBtn = card.querySelector(".submitAnswer");
+
+      submitBtn.addEventListener("click", async () => {
+        console.log("Submit Clicked");
+
+        const answerBox = card.querySelector(".answer-box");
+
+        const answer = answerBox.value.trim();
+
+        if (!answer) {
+          answerBox.focus();
+
+          return;
+        }
+
+        try {
+          /* ===== SAVE ANSWER ===== */
+
+          await fetch("http://localhost:4000/interview/answer", {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              question: item.question,
+
+              answer,
+            }),
+          });
+
+          console.log("Answer Saved");
+
+          /* ===== NEXT CARD ===== */
+
+          const nextCard = card.nextElementSibling;
+
+          /* ===== REMOVE CURRENT ===== */
+
+          card.remove();
+
+          /* ===== ACTIVATE NEXT ===== */
+
+          if (nextCard) {
+            nextCard.classList.add("active-question");
+
+            nextCard.scrollIntoView({
+              behavior: "smooth",
+
+              block: "center",
+            });
+
+            const nextAnswerBox = nextCard.querySelector(".answer-box");
+
+            if (nextAnswerBox) {
+              nextAnswerBox.focus();
+            }
+
+            const nextQuestion = nextCard.querySelector("h4").innerText;
+
+            askAIVoice(nextQuestion);
+          } else {
+            alert("Interview Completed");
+          }
+        } catch (error) {
+          console.log("Submit Error:", error);
+        }
+      });
     });
 
     console.log("Questions Loaded");
@@ -174,27 +303,19 @@ async function loadQuestions() {
 
 async function startInterview() {
   try {
-    const response = await fetch("http://localhost:4000/interview/start");
+    const activeCard = getActiveCard();
 
-    const data = await response.json();
+    if (!activeCard) return;
 
-    console.log("START:", data);
+    const question = activeCard.querySelector("h4").innerText;
 
-    if (data.currentQuestion) {
-      const questionBox = getActiveQuestionBox();
-
-      if (questionBox) {
-        questionBox.innerText = data.currentQuestion.question;
-
-        askAIVoice(data.currentQuestion.question);
-      }
-    }
+    askAIVoice(question);
   } catch (error) {
     console.error("Start Error:", error);
   }
 }
 
-/* ================= SEND TO WHISPER ================= */
+/* ================= WHISPER ================= */
 
 async function sendToWhisper() {
   try {
@@ -202,11 +323,12 @@ async function sendToWhisper() {
 
     if (!audioChunks.length) {
       alert("No audio found");
+
       return;
     }
 
     if (answerBox) {
-      answerBox.value = "Transcribing...";
+      answerBox.value = "Analyzing...";
     }
 
     const audioBlob = new Blob(audioChunks, {
@@ -234,108 +356,12 @@ async function sendToWhisper() {
       return;
     }
 
-    /* ===== SHOW TRANSCRIPT ===== */
-
     if (answerBox) {
       answerBox.value = data.text;
-    }
-
-    /* ===== USER CAN EDIT NOW ===== */
-
-    const shouldSend = confirm("Submit this answer?");
-
-    if (shouldSend) {
-      await sendFeedback(answerBox.value);
     }
   } catch (error) {
     console.error("Whisper Error:", error);
   }
 
   audioChunks = [];
-} /* ================= SEND ANSWER ================= */
-
-async function sendFeedback(transcript) {
-  try {
-    const response = await fetch("http://localhost:4000/interview/answer", {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        text: transcript,
-      }),
-    });
-
-    const data = await response.json();
-
-    console.log("ANSWER RESPONSE:", data);
-
-    const currentCard = getActiveCard();
-
-    const nextCard = currentCard?.nextElementSibling;
-
-    currentCard?.classList.remove("active-question");
-
-    if (nextCard) {
-      nextCard.classList.add("active-question");
-    }
-
-    /* ===== NEXT QUESTION ===== */
-
-    if (data.nextQuestion && nextCard) {
-      const nextQuestionBox = nextCard.querySelector("h4");
-
-      nextQuestionBox.innerText = data.nextQuestion.question;
-
-      const nextAnswerBox = nextCard.querySelector(".answer-box");
-
-      if (nextAnswerBox) {
-        nextAnswerBox.value = "";
-      }
-
-      askAIVoice(data.nextQuestion.question);
-    } else {
-      alert("Interview Completed");
-    }
-  } catch (error) {
-    console.error("Answer Error:", error);
-  }
-}
-
-/* ================= SUBMIT ANSWER ================= */
-
-const submitAnswer = document.getElementById("submitAnswer");
-
-if (submitAnswer) {
-  submitAnswer.addEventListener("click", async () => {
-    try {
-      const response = await fetch("http://localhost:4000/interview-feedback", {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          send: true,
-        }),
-      });
-
-      const data = await response.json();
-
-      console.log("FEEDBACK:", data);
-
-      if (data.feedback) {
-        document.getElementById("feedback").innerText = JSON.stringify(
-          data.feedback,
-          null,
-          2,
-        );
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  });
 }

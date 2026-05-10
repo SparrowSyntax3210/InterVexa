@@ -327,7 +327,7 @@ app.get("/download-report", async (req, res) => {
 
     const outputPath = path.join(reportDir, "report.pdf");
 
-    console.log("🎯 Confidence:", confidenceScore);
+    console.log("Confidence:", confidenceScore);
 
     // 🚀 Generate PDF (INPUT IS ALWAYS JSON NOW)
     generatePDF(reportPath, outputPath, confidenceScore);
