@@ -8,24 +8,24 @@ const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 const User = require("../db/models/User");
 const session = require("express-session");
 const app = express();
-
+const interviewRoutes = require("../routes/interview.routes");
 /* ======================= MIDDLEWARE ======================= */
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-
+app.use("/interview", interviewRoutes);
 app.use(express.static(path.join(__dirname, "../public")));
 
 /* ======================= SESSION ======================= */
 
 app.use(
   session({
-    secret: "intervexa-secret", // change this to something strong
+    secret: "intervexa-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // true only if using HTTPS
+      secure: false,
       httpOnly: true,
     },
   }),
@@ -134,70 +134,121 @@ function extractSkills(text) {
   return skills.filter((skill) => lower.includes(skill));
 }
 
-/* ======================= QUESTION GENERATION ======================= */
+// ================= GENERATE INTERVIEW =================
 
 app.post("/form", async (req, res) => {
   try {
-    const { role, experience, mode, Number } = req.body;
+    const { role, experience, questions, mode } = req.body;
 
-    const parameter = `${role} with ${experience} experience - ${mode}`;
+    if (!role || !experience || !questions || !mode) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
 
-    const questions = await generateQuestions(skills, role, experience, mode);
+    console.log("Incoming Form Data:");
 
-    const report = {
+    console.log({
+      role,
+      experience,
+      questions,
+      mode,
+    });
+
+    const generatedQuestions = await generateQuestions(
+      skills,
       role,
       experience,
       mode,
       questions,
+    );
+
+    const report = {
+      role,
+      experience,
+      totalQuestions: questions,
+      mode,
+
+      questions: generatedQuestions,
+
       answers: [],
+
       currentQuestion: 0,
+
       createdAt: new Date(),
     };
 
     const fileName = `report-${Date.now()}.json`;
+
     const reportPath = path.join(reportDir, fileName);
 
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
-    res.json({ questions });
+    console.log("Report Saved");
+
+    res.status(200).json({
+      success: true,
+      message: "Questions Generated",
+      questions: generatedQuestions,
+      reportFile: fileName,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Question Generation Error:", error);
+
     res.status(500).json({
-      error: "Failed to generate questions",
+      success: false,
+      message: "Failed to generate questions",
     });
   }
 });
 
+// ================= AI QUESTION GENERATOR =================
+
 const generateQuestions = async (skills, role, experience, mode, count) => {
-  const messages = [
-    {
-      role: "system",
-      content:
-        "You are an expert interview question generator that strictly follows output rules.",
-    },
-    {
-      role: "user",
-      content: `
+  try {
+    const messages = [
+      {
+        role: "system",
+
+        content:
+          "You are an expert AI interviewer that generates professional interview questions.",
+      },
+
+      {
+        role: "user",
+
+        content: `
+
 Generate EXACTLY ${count} interview questions.
 
-Candidate Details:
+CANDIDATE DETAILS:
+
 Role: ${role}
+
 Experience: ${experience} years
-Mode: ${mode}
+
+Interview Type: ${mode}
 
 Skills:
-${skills.join(", ")}
+${skills?.length ? skills.join(", ") : "General Development"}
+
 
 STRICT RULES:
-- Generate EXACTLY ${count} questions (no more, no less)
-- Do NOT repeat questions
-- If mode = technical → only technical questions
-- If mode = HR → only behavioral questions
-- Match difficulty to experience level
-- Each question must map to a skill when possible
-- Return ONLY valid JSON (no markdown, no explanation)
+
+- Generate EXACTLY ${count} questions
+- No repeated questions
+- Keep questions concise
+- Match difficulty according to experience
+- Technical Interview → only technical questions
+- HR Interview → only HR/behavioral questions
+- Return ONLY valid JSON
+- No markdown
+- No explanation
+
 
 OUTPUT FORMAT:
+
 [
   {
     "type": "technical",
@@ -205,275 +256,45 @@ OUTPUT FORMAT:
     "question": "Explain Virtual DOM in React"
   }
 ]
+
 `,
-    },
-  ];
-
-  const response = await askAi(messages);
-
-  const cleaned = response
-    .replace(/```json/g, "")
-    .replace(/```/g, "")
-    .trim();
-
-  return JSON.parse(cleaned);
-};
-/* ======================= START INTERVIEW ======================= */
-
-app.post("/start-interview", async (req, res) => {
-  try {
-    const files = fs.readdirSync(reportDir);
-
-    if (!files.length) {
-      return res.status(400).json({
-        message: "No report found",
-      });
-    }
-
-    const latestFile = files
-      .map((file) => ({
-        name: file,
-        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
-      }))
-      .sort((a, b) => b.time - a.time)[0];
-
-    if (!latestFile) {
-      return res.status(400).json({
-        message: "No latest report",
-      });
-    }
-
-    const reportPath = path.join(reportDir, latestFile.name);
-
-    const report = JSON.parse(fs.readFileSync(reportPath));
-
-    report.currentQuestion = 0;
-
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-
-    res.json({
-      question: report.questions[0],
-      total: report.questions.length,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Start error");
-  }
-});
-
-app.post("/nextquestion", (req, res) => {
-  try {
-    const files = fs.readdirSync(reportDir);
-
-    if (!files.length) {
-      return res.status(400).json({
-        message: "No report found",
-      });
-    }
-
-    const latestFile = files
-      .map((file) => ({
-        name: file,
-        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
-      }))
-      .sort((a, b) => b.time - a.time)[0];
-
-    const reportPath = path.join(reportDir, latestFile.name);
-
-    const report = JSON.parse(fs.readFileSync(reportPath));
-
-    report.currentQuestion += 1;
-
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-
-    if (report.currentQuestion < report.questions.length) {
-      res.json({
-        question: report.questions[report.currentQuestion],
-        index: report.currentQuestion,
-      });
-    } else {
-      res.json({
-        message: "Interview Completed",
-      });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Next Question Error");
-  }
-});
-
-app.post("/interview-answer", (req, res) => {
-  try {
-    const { text } = req.body;
-
-    const files = fs.readdirSync(reportDir);
-    if (!files.length) {
-      return res.status(400).json({ error: "No report found" });
-    }
-
-    const latestFile = files
-      .map((file) => ({
-        name: file,
-        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
-      }))
-      .sort((a, b) => b.time - a.time)[0];
-
-    const reportPath = path.join(reportDir, latestFile.name);
-    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
-
-    const currentQ = report.questions[report.currentQuestion];
-
-    // ✅ SAVE ANSWER HERE
-    const answerObj = {
-      question: currentQ.question,
-      answer: text,
-      timestamp: new Date(),
-    };
-
-    report.answers.push(answerObj);
-
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-
-    res.json({
-      success: true,
-      saved: true,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Answer save error");
-  }
-});
-
-/* ======================= FEEDBACK ======================= */
-
-app.post("/interview-feedback", async (req, res) => {
-  try {
-    // ✅ Get latest report
-    const files = fs.readdirSync(reportDir);
-
-    if (!files.length) {
-      return res.status(400).json({
-        message: "No report found",
-      });
-    }
-
-    const latest = files
-      .map((file) => ({
-        name: file,
-        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
-      }))
-      .sort((a, b) => b.time - a.time)[0].name;
-
-    const reportPath = path.join(reportDir, latest);
-    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
-
-    const currentIndex = report.currentQuestion - 1;
-    const currentQ = report.questions[currentIndex];
-
-    if (!currentQ) {
-      return res.json({
-        message: "Interview Completed",
-      });
-    }
-
-    const lastAnswer = report.answers?.[report.answers.length - 1];
-    const transcript = lastAnswer?.answer;
-
-    if (!transcript) {
-      return res.status(400).json({
-        message: "No answer found",
-      });
-    }
-
-    // ✅ Better prompt (STRICT JSON)
-    const messages = [
-      {
-        role: "system",
-        content:
-          "You are a strict technical interviewer. Always return valid JSON only.",
-      },
-      {
-        role: "user",
-        content: `
-Evaluate the following answer.
-
-Question:
-${currentQ.question}
-
-Answer:
-${transcript}
-
-Return ONLY valid JSON. No explanation, no markdown.
-
-Format:
-{
-  "score": number (0-10),
-  "communication": "string",
-  "technical": "string",
-  "strengths": ["point1", "point2"],
-  "improvements": ["point1", "point2"]
-}
-        `,
       },
     ];
 
-    const aiResponse = await askAi(messages);
+    const response = await askAi(messages);
 
-    console.log("🧠 Raw AI Response:", aiResponse);
+    const cleaned = response
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
-    // ✅ Extract JSON safely
-    let feedback;
+    const parsedQuestions = JSON.parse(cleaned);
 
-    try {
-      const match = aiResponse.match(/{[\s\S]*}/);
-
-      if (!match) {
-        throw new Error("No JSON found in AI response");
-      }
-
-      const cleaned = match[0]
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
-
-      feedback = JSON.parse(cleaned);
-    } catch (parseError) {
-      console.error("❌ JSON Parse Failed:", aiResponse);
-
-      // ✅ Fallback so UI never breaks
-      feedback = {
-        score: 5,
-        communication: "Could not properly analyze communication.",
-        technical: "Could not properly analyze technical depth.",
-        strengths: ["Answer received but formatting issue occurred"],
-        improvements: ["Ensure structured response and clarity"],
-      };
-    }
-
-    // ✅ Save feedback
-    lastAnswer.feedback = feedback;
-    lastAnswer.evaluatedAt = new Date();
-
-    // ✅ Move to next question
-    report.currentQuestion += 1;
-
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf-8");
-
-    res.json({
-      feedback,
-      nextQuestion: report.questions[report.currentQuestion] || null,
-    });
+    return parsedQuestions;
   } catch (error) {
-    console.error("🔥 Feedback Error:", error);
+    console.error("AI Question Generation Failed:", error);
 
-    res.status(500).json({
-      message: "Feedback processing failed",
-    });
+    return [];
   }
-});
-const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args));
-const generatePDF = require("../generatereport");
+};
+/* ======================= START INTERVIEW ======================= */
+
+function getLatestReportPath() {
+  const files = fs.readdirSync(reportDir);
+
+  if (!files.length) {
+    return null;
+  }
+
+  const latestFile = files
+    .map((file) => ({
+      name: file,
+      time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
+    }))
+    .sort((a, b) => b.time - a.time)[0];
+
+  return path.join(reportDir, latestFile.name);
+}
 
 async function getConfidenceScore() {
   try {
@@ -487,34 +308,6 @@ async function getConfidenceScore() {
     console.error("❌ Error fetching confidence:", err);
     return 0;
   }
-}
-
-// ✅ STRICTLY ONLY JSON FILES
-function getLatestReport() {
-  const dir = path.join(__dirname, "..", "reports");
-
-  if (!fs.existsSync(dir)) {
-    throw new Error("Reports folder not found");
-  }
-
-  const files = fs.readdirSync(dir);
-
-  const jsonFiles = files.filter(
-    (f) => f.endsWith(".json") && f !== "report.pdf",
-  );
-
-  if (!jsonFiles.length) {
-    throw new Error("No JSON reports found");
-  }
-
-  const latest = jsonFiles
-    .map((file) => ({
-      name: file,
-      time: fs.statSync(path.join(dir, file)).mtime.getTime(),
-    }))
-    .sort((a, b) => b.time - a.time)[0].name;
-
-  return path.join(dir, latest);
 }
 
 app.get("/download-report", async (req, res) => {
@@ -637,18 +430,6 @@ app.post("/transcribe", upload.single("audio"), async (req, res) => {
     console.error(err);
     return res.status(500).json({ error: "Transcription failed" });
   }
-});
-
-app.get("/logout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Logout Error:", err);
-      return res.send("Error logging out");
-    }
-
-    res.clearCookie("connect.sid"); // 🔥 remove session cookie
-    res.redirect("/index.html"); // or "/"
-  });
 });
 
 module.exports = app;
