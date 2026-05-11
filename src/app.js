@@ -59,6 +59,71 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+app.post("/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+      return res.send("All fields are required");
+    }
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.send("User already exists");
+
+    const newUser = new User({ username, email, password });
+    await newUser.save();
+
+    res.redirect("/login");
+  } catch (err) {
+    console.error(err);
+    res.send("Error saving user");
+  }
+});
+
+/* ================= LOGIN ================= */
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email, password });
+
+    if (!user) return res.send("Invalid email or password ");
+
+    req.session.user = user;
+
+    res.redirect("/index.html");
+  } catch (err) {
+    console.error(err);
+    res.send("Login error");
+  }
+});
+// ================= AUTH STATUS =================
+app.get("/auth-status", (req, res) => {
+  if (req.session.user) {
+    res.json({
+      loggedIn: true,
+      user: {
+        username: req.session.user.username,
+        email: req.session.user.email,
+      },
+    });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+/* ================= LOGOUT ================= */
+app.get("/logout", (req, res) => {
+  req.logout?.(() => {});
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Session destroy error:", err);
+      return res.status(500).send("Logout failed");
+    }
+    res.clearCookie("connect.sid");
+    res.redirect("/index.html");
+  });
+});
+
 /* ======================= PDF TEXT EXTRACTION ======================= */
 
 async function extractText(filePath) {
@@ -277,6 +342,28 @@ OUTPUT FORMAT:
     return [];
   }
 };
+
+app.post("/transcribe", upload.single("audio"), async (req, res) => {
+  try {
+    const audioPath = req.file.path;
+
+    const formData = new FormData();
+    formData.append("audio", fs.createReadStream(audioPath));
+
+    const response = await fetch("http://localhost:5000/transcribe", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    return res.json(data);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Transcription failed" });
+  }
+});
+
 /* ======================= START INTERVIEW ======================= */
 
 function getLatestReportPath() {
@@ -296,15 +383,23 @@ function getLatestReportPath() {
   return path.join(reportDir, latestFile.name);
 }
 
-app.post("/interview-feedback", async (req, res) => {
+app.get("/view-report", (req, res) => {
   try {
-    /* ================= GET REPORT ================= */
+    const reportDir = path.join(__dirname, "..", "reports");
+
+    if (!fs.existsSync(reportDir)) {
+      return res.status(404).json({
+        success: false,
+        message: "Report folder not found",
+      });
+    }
 
     const files = fs.readdirSync(reportDir);
 
     if (!files.length) {
-      return res.status(400).json({
-        message: "No report found",
+      return res.status(404).json({
+        success: false,
+        message: "No reports found",
       });
     }
 
@@ -319,15 +414,73 @@ app.post("/interview-feedback", async (req, res) => {
 
     const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
 
+    res.json(report);
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to load report",
+    });
+  }
+});
+
+app.post("/interview-feedback", async (req, res) => {
+  try {
+    /* ================= REPORT DIRECTORY ================= */
+
+    const reportDir = path.join(__dirname, "..", "reports");
+
+    if (!fs.existsSync(reportDir)) {
+      return res.status(400).json({
+        success: false,
+        message: "Report folder not found",
+      });
+    }
+
+    /* ================= GET LATEST REPORT ================= */
+
+    const files = fs.readdirSync(reportDir);
+
+    if (!files.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No reports found",
+      });
+    }
+
+    const latest = files
+      .map((file) => ({
+        name: file,
+        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
+      }))
+      .sort((a, b) => b.time - a.time)[0].name;
+
+    const reportPath = path.join(reportDir, latest);
+
+    console.log("Using report:", reportPath);
+
+    /* ================= READ REPORT ================= */
+
+    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
+
     /* ================= VALIDATION ================= */
 
     if (!report.answers || !report.answers.length) {
       return res.status(400).json({
-        message: "No answers found",
+        success: false,
+        message: "No answers found in report",
       });
     }
 
-    /* ================= FEEDBACK ARRAY ================= */
+    if (!report.questions || !report.questions.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No questions found in report",
+      });
+    }
+
+    /* ================= INIT FEEDBACK ARRAY ================= */
 
     if (!report.feedbacks) {
       report.feedbacks = [];
@@ -337,20 +490,31 @@ app.post("/interview-feedback", async (req, res) => {
 
     for (let i = 0; i < report.answers.length; i++) {
       const answerData = report.answers[i];
-
       const questionData = report.questions[i];
 
-      /* ===== SKIP EMPTY ANSWERS ===== */
+      /* ================= SKIP EMPTY ANSWERS ================= */
 
-      if (!answerData || !answerData.answer) {
+      if (
+        !answerData ||
+        !answerData.answer ||
+        answerData.answer.trim() === ""
+      ) {
+        console.log(`Skipping empty answer ${i + 1}`);
         continue;
       }
 
-      /* ===== SKIP ALREADY EVALUATED ===== */
+      /* ================= SKIP VALID FEEDBACK ================= */
 
-      if (answerData.feedback) {
+      if (
+        answerData.feedback &&
+        answerData.feedback.score &&
+        answerData.feedback.score > 0
+      ) {
+        console.log(`Feedback already exists for Q${i + 1}`);
         continue;
       }
+
+      console.log(`Evaluating Question ${i + 1}`);
 
       /* ================= AI PROMPT ================= */
 
@@ -358,13 +522,13 @@ app.post("/interview-feedback", async (req, res) => {
         {
           role: "system",
           content:
-            "You are a strict technical interviewer. Always return valid JSON only.",
+            "You are a strict technical interviewer. Return ONLY valid JSON. No markdown. No explanation.",
         },
 
         {
           role: "user",
           content: `
-Evaluate the following answer.
+Evaluate the following interview answer.
 
 Question:
 ${questionData?.question || "Unknown Question"}
@@ -372,18 +536,23 @@ ${questionData?.question || "Unknown Question"}
 Answer:
 ${answerData.answer}
 
-Return ONLY valid JSON.
+Return ONLY valid JSON in this exact format:
 
-Format:
 {
-  "score": number,
-  "communication": "string",
-  "technical": "string",
-  "strengths": ["point1", "point2"],
-  "improvements": ["point1", "point2"]
-  "ratings": [20/100]
+  "score": 78,
+  "communication": "Clear and confident communication.",
+  "technical": "Good technical understanding with examples.",
+  "strengths": [
+    "Explained concepts clearly",
+    "Used practical examples"
+  ],
+  "improvements": [
+    "Can improve structure",
+    "Add more technical depth"
+  ],
+  "rating": 78
 }
-          `,
+`,
         },
       ];
 
@@ -395,7 +564,7 @@ Format:
 
       let feedback;
 
-      /* ================= PARSE ================= */
+      /* ================= PARSE RESPONSE ================= */
 
       try {
         const match = aiResponse.match(/{[\s\S]*}/);
@@ -410,59 +579,61 @@ Format:
           .trim();
 
         feedback = JSON.parse(cleaned);
+
+        /* ================= VALIDATE RESPONSE ================= */
+
+        if (
+          typeof feedback.score !== "number" ||
+          !feedback.communication ||
+          !feedback.technical
+        ) {
+          throw new Error("Invalid feedback structure");
+        }
       } catch (parseError) {
-        console.error("JSON Parse Failed:", aiResponse);
+        console.error("JSON Parse Failed:", parseError.message);
 
         feedback = {
-          score: 5,
-          communication: "Could not properly analyze communication.",
-          technical: "Could not properly analyze technical depth.",
-          strengths: ["Answer received"],
-          improvements: ["Provide more structured answers"],
+          score: 0,
+          communication: "AI evaluation could not be completed.",
+          technical: "AI evaluation could not be completed.",
+          strengths: [],
+          improvements: ["Please regenerate feedback"],
+          rating: 0,
         };
       }
-
-      /* ================= SAVE FEEDBACK ================= */
-
-      answerData.feedback = feedback;
-
-      answerData.evaluatedAt = new Date();
-
-      report.feedbacks.push({
-        question: questionData?.question,
-        feedback,
-      });
     }
 
-    /* ================= COMPLETE ================= */
+    /* ================= SAVE UPDATED REPORT ================= */
 
-    report.completed = true;
-
-    report.completedAt = new Date();
-
-    /* ================= SAVE REPORT ================= */
-
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf-8");
-
-    console.log("All Feedback Saved");
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
     /* ================= RESPONSE ================= */
 
     res.json({
       success: true,
-
-      message: "Feedback generated successfully",
-
+      message: "Interview feedback generated",
       report,
     });
   } catch (error) {
-    console.error("🔥 Feedback Error:", error);
+    console.error("Interview Feedback Error:", error);
 
     res.status(500).json({
-      message: "Feedback processing failed",
+      success: false,
+      message: "Failed to generate feedback",
+      error: error.message,
     });
   }
+  answerData.feedback = feedback;
+
+  answerData.evaluatedAt = new Date();
+
+  report.feedbacks.push({
+    question: questionData?.question,
+    feedback,
+  });
 });
+
+/* ================= SAVE FEEDBACK ================= */
 
 async function getConfidenceScore() {
   try {
@@ -477,6 +648,30 @@ async function getConfidenceScore() {
     return 0;
   }
 }
+
+app.get("/view-report", async (req, res) => {
+  try {
+    const reportDir = path.join(__dirname, "..", "reports");
+
+    if (!fs.existsSync(reportDir)) {
+      fs.mkdirSync(reportDir, { recursive: true });
+      return res.status(400).send("No reports available yet");
+    }
+
+    const reportPath = getLatestReportPath();
+
+    console.log("Using JSON report:", reportPath);
+
+    // Read JSON file
+    const reportData = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
+
+    // Send JSON to frontend
+    res.json(reportData);
+  } catch (error) {
+    console.error("View Report Error:", error);
+    return res.status(500).send(error.message);
+  }
+});
 
 app.get("/download-report", async (req, res) => {
   try {
@@ -508,92 +703,6 @@ app.get("/download-report", async (req, res) => {
   } catch (error) {
     console.error("PDF Error:", error);
     return res.status(500).send(error.message);
-  }
-});
-
-app.post("/register", async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
-
-    if (!username || !email || !password) {
-      return res.send("All fields are required");
-    }
-
-    const existing = await User.findOne({ email });
-    if (existing) return res.send("User already exists");
-
-    const newUser = new User({ username, email, password });
-    await newUser.save();
-
-    res.redirect("/login");
-  } catch (err) {
-    console.error(err);
-    res.send("Error saving user");
-  }
-});
-
-/* ================= LOGIN ================= */
-app.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email, password });
-
-    if (!user) return res.send("Invalid email or password ");
-
-    req.session.user = user;
-
-    res.redirect("/index.html");
-  } catch (err) {
-    console.error(err);
-    res.send("Login error");
-  }
-});
-// ================= AUTH STATUS =================
-app.get("/auth-status", (req, res) => {
-  if (req.session.user) {
-    res.json({
-      loggedIn: true,
-      user: {
-        username: req.session.user.username,
-        email: req.session.user.email,
-      },
-    });
-  } else {
-    res.json({ loggedIn: false });
-  }
-});
-
-/* ================= LOGOUT ================= */
-app.get("/logout", (req, res) => {
-  req.logout?.(() => {});
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Session destroy error:", err);
-      return res.status(500).send("Logout failed");
-    }
-    res.clearCookie("connect.sid");
-    res.redirect("/index.html");
-  });
-});
-
-app.post("/transcribe", upload.single("audio"), async (req, res) => {
-  try {
-    const audioPath = req.file.path;
-
-    const formData = new FormData();
-    formData.append("audio", fs.createReadStream(audioPath));
-
-    const response = await fetch("http://localhost:5000/transcribe", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await response.json();
-
-    return res.json(data);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Transcription failed" });
   }
 });
 

@@ -267,6 +267,42 @@ body{
     border-radius:10px;
 }
 
+.QuesWrapper{
+    width: 90%;
+    margin: auto;
+    padding: 20px;
+}
+
+.feedback-card{
+    background: #111;
+    border: 1px solid #222;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.feedback-card h3{
+    color: cyan;
+    margin-bottom: 15px;
+}
+
+.question{
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.ans{
+    color: #cfcfcf;
+    margin-bottom: 10px;
+}
+
+.strength ul,
+.improve ul{
+    margin-left: 20px;
+    margin-top: 8px;
+}
+
 /* ================= RESPONSIVE ================= */
 
 @media(max-width:1100px){

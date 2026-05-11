@@ -285,7 +285,6 @@ body{
     background:black;
 }
 
-/* GRID */
 
 .interview-grid{
     display:grid;
@@ -293,7 +292,6 @@ body{
     gap:24px;
 }
 
-/* LEFT */
 
 .left-panel{
     display:flex;
@@ -301,7 +299,6 @@ body{
     gap:20px;
 }
 
-/* VIDEO */
 
 .video-card{
     position:relative;
@@ -409,7 +406,6 @@ body{
     color:var(--text-secondary);
 }
 
-/* ================= VIDEO BUTTON ================= */
 
 /* ================= VIDEO BUTTON ================= */
 
