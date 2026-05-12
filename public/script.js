@@ -108,17 +108,17 @@ analyzeBtn.addEventListener("click", async (e) => {
 interviewForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const inputs = interviewForm.querySelectorAll("input");
+  const role = interviewForm.querySelector('input[type="text"]').value.trim();
 
-  const select = interviewForm.querySelector("select");
+  const experience = interviewForm
+    .querySelector(".input-group select")
+    .value.trim();
 
-  const role = inputs[0].value.trim();
+  const questions = interviewForm
+    .querySelector('input[type="number"]')
+    .value.trim();
 
-  const experience = inputs[1].value.trim();
-
-  const questions = inputs[2].value.trim();
-
-  const mode = select.value;
+  const mode = interviewForm.querySelectorAll("select")[1].value;
 
   if (!role || !experience || !questions) {
     alert("Please fill all fields");

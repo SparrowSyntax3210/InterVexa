@@ -3,21 +3,26 @@ const path = require("path");
 const fs = require("fs");
 const cors = require("cors");
 const multer = require("multer");
-const { askAi } = require("./services/openRouter.service");
-const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
-const User = require("../db/models/User");
 const session = require("express-session");
-const app = express();
+const fetch = require("node-fetch");
+const FormData = require("form-data");
+
+const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
+
+const { askAi } = require("./services/openRouter.service");
+const User = require("../db/models/User");
 const interviewRoutes = require("../routes/interview.routes");
-/* ======================= MIDDLEWARE ======================= */
+const generatePDF = require("../utils/generatereport");
+
+const app = express();
+
+/* ======================================================
+   MIDDLEWARE
+====================================================== */
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use("/interview", interviewRoutes);
-app.use(express.static(path.join(__dirname, "../public")));
-
-/* ======================= SESSION ======================= */
 
 app.use(
   session({
@@ -27,158 +32,107 @@ app.use(
     cookie: {
       secure: false,
       httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24,
     },
   }),
 );
 
-app.get("/auth-status", (req, res) => {
-  if (req.session && req.session.user) {
-    return res.json({
-      loggedIn: true,
-      user: req.session.user,
-    });
-  }
+app.use(express.static(path.join(__dirname, "../public")));
 
-  return res.json({ loggedIn: false });
-});
+app.use("/interview", interviewRoutes);
 
-/* ======================= FOLDERS ======================= */
+/* ======================================================
+   DIRECTORIES
+====================================================== */
 
-const uploadDir = path.join(process.cwd(), "upload");
-const reportDir = path.join(process.cwd(), "reports");
+const uploadDir = path.join(__dirname, "../upload");
+const reportDir = path.join(__dirname, "../reports");
 
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-if (!fs.existsSync(reportDir)) fs.mkdirSync(reportDir);
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-/* ======================= MULTER ======================= */
+if (!fs.existsSync(reportDir)) {
+  fs.mkdirSync(reportDir, { recursive: true });
+}
+
+/* ======================================================
+   MULTER
+====================================================== */
 
 const storage = multer.diskStorage({
-  destination: uploadDir,
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
 });
 
 const upload = multer({ storage });
 
-app.post("/register", async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
+/* ======================================================
+   GLOBAL SKILLS
+====================================================== */
 
-    if (!username || !email || !password) {
-      return res.send("All fields are required");
+let extractedSkills = [];
+
+/* ======================================================
+   HELPERS
+====================================================== */
+
+/* ======================================================
+   GET LATEST JSON REPORT
+====================================================== */
+
+function getLatestReportPath() {
+  try {
+    if (!fs.existsSync(reportDir)) {
+      console.log("Report directory not found");
+      return null;
     }
 
-    const existing = await User.findOne({ email });
-    if (existing) return res.send("User already exists");
+    const files = fs.readdirSync(reportDir);
 
-    const newUser = new User({ username, email, password });
-    await newUser.save();
+    console.log("ALL FILES:", files);
 
-    res.redirect("/login");
-  } catch (err) {
-    console.error(err);
-    res.send("Error saving user");
-  }
-});
+    /* ================= ONLY JSON FILES ================= */
 
-/* ================= LOGIN ================= */
-app.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email, password });
-
-    if (!user) return res.send("Invalid email or password ");
-
-    req.session.user = user;
-
-    res.redirect("/index.html");
-  } catch (err) {
-    console.error(err);
-    res.send("Login error");
-  }
-});
-// ================= AUTH STATUS =================
-app.get("/auth-status", (req, res) => {
-  if (req.session.user) {
-    res.json({
-      loggedIn: true,
-      user: {
-        username: req.session.user.username,
-        email: req.session.user.email,
-      },
+    const jsonFiles = files.filter((file) => {
+      return file.endsWith(".json") && file.startsWith("report-");
     });
-  } else {
-    res.json({ loggedIn: false });
-  }
-});
 
-/* ================= LOGOUT ================= */
-app.get("/logout", (req, res) => {
-  req.logout?.(() => {});
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Session destroy error:", err);
-      return res.status(500).send("Logout failed");
-    }
-    res.clearCookie("connect.sid");
-    res.redirect("/index.html");
-  });
-});
+    console.log("JSON FILES:", jsonFiles);
 
-/* ======================= PDF TEXT EXTRACTION ======================= */
-
-async function extractText(filePath) {
-  try {
-    const data = new Uint8Array(fs.readFileSync(filePath));
-    const pdf = await pdfjsLib.getDocument({ data }).promise;
-
-    let text = "";
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-
-      text += content.items.map((item) => item.str).join(" ") + "\n";
+    if (!jsonFiles.length) {
+      console.log("No JSON reports found");
+      return null;
     }
 
-    return text;
-  } catch (err) {
-    console.error("PDF Error:", err);
-    return "";
+    /* ================= SORT LATEST ================= */
+
+    const latestFile = jsonFiles
+      .map((file) => ({
+        name: file,
+        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
+      }))
+      .sort((a, b) => b.time - a.time)[0];
+
+    const finalPath = path.join(reportDir, latestFile.name);
+
+    console.log("LATEST REPORT:", finalPath);
+
+    return finalPath;
+  } catch (error) {
+    console.error("getLatestReportPath Error:", error);
+
+    return null;
   }
 }
 
-/* ======================= UPLOAD ROUTE ======================= */
-
-let skills = [];
-
-app.post("/upload", upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    const filePath = req.file.path;
-
-    const text = await extractText(filePath);
-
-    skills = extractSkills(text);
-
-    console.log("Extracted Skills:", skills);
-
-    res.json({
-      message: "Resume uploaded successfully",
-      skills,
-    });
-  } catch (error) {
-    console.error("Upload Error:", error);
-    res.status(500).json({ error: "Upload failed" });
-  }
-});
-
-/* ======================= SKILLS ======================= */
-
 function extractSkills(text) {
-  const skills = [
+  const skillList = [
     "javascript",
     "react",
     "node",
@@ -194,12 +148,275 @@ function extractSkills(text) {
     "c++",
   ];
 
-  const lower = text.toLowerCase();
+  const lowerText = text.toLowerCase();
 
-  return skills.filter((skill) => lower.includes(skill));
+  return skillList.filter((skill) => lowerText.includes(skill));
 }
 
-// ================= GENERATE INTERVIEW =================
+async function extractText(filePath) {
+  try {
+    const data = new Uint8Array(fs.readFileSync(filePath));
+
+    const pdf = await pdfjsLib.getDocument({ data }).promise;
+
+    let text = "";
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+
+      const content = await page.getTextContent();
+
+      text += content.items.map((item) => item.str).join(" ") + "\n";
+    }
+
+    return text;
+  } catch (error) {
+    console.error("PDF Extraction Error:", error);
+    return "";
+  }
+}
+
+async function getConfidenceScore() {
+  try {
+    const response = await fetch("http://localhost:8000/confidence");
+
+    const data = await response.json();
+
+    return data.confidence_score || 0;
+  } catch (error) {
+    console.error("Confidence API Error:", error);
+    return 0;
+  }
+}
+
+/* ======================================================
+   AUTH ROUTES
+====================================================== */
+
+app.post("/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    const user = new User({
+      username,
+      email,
+      password,
+    });
+
+    await user.save();
+
+    req.session.user = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+    };
+
+    return res.status(201).json({
+      success: true,
+      message: "Registration successful",
+      user: req.session.user,
+    });
+  } catch (error) {
+    console.error("Register Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Registration failed",
+    });
+  }
+});
+
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password required",
+      });
+    }
+
+    const user = await User.findOne({ email, password });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    req.session.user = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+    };
+
+    return res.json({
+      success: true,
+      message: "Login successful",
+      user: req.session.user,
+    });
+  } catch (error) {
+    console.error("Login Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Login failed",
+    });
+  }
+});
+
+app.get("/auth-status", (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.json({
+        loggedIn: false,
+      });
+    }
+
+    return res.json({
+      loggedIn: true,
+      user: req.session.user,
+    });
+  } catch (error) {
+    console.error("Auth Status Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to check auth status",
+    });
+  }
+});
+
+app.get("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Logout Error:", err);
+
+      return res.status(500).json({
+        success: false,
+        message: "Logout failed",
+      });
+    }
+
+    res.clearCookie("connect.sid");
+
+    return res.json({
+      success: true,
+      message: "Logout successful",
+    });
+  });
+});
+
+/* ======================================================
+   RESUME UPLOAD
+====================================================== */
+
+app.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded",
+      });
+    }
+
+    const filePath = req.file.path;
+
+    const extractedText = await extractText(filePath);
+
+    extractedSkills = extractSkills(extractedText);
+
+    return res.json({
+      success: true,
+      message: "Resume uploaded successfully",
+      skills: extractedSkills,
+    });
+  } catch (error) {
+    console.error("Upload Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Resume upload failed",
+    });
+  }
+});
+
+/* ======================================================
+   QUESTION GENERATION
+====================================================== */
+
+async function generateQuestions(skills, role, experience, mode, count) {
+  try {
+    const messages = [
+      {
+        role: "system",
+        content:
+          "You are an expert AI interviewer that generates professional interview questions.",
+      },
+
+      {
+        role: "user",
+        content: `
+Generate EXACTLY ${count} interview questions.
+
+Role: ${role}
+Experience: ${experience} years
+Interview Type: ${mode}
+
+Skills:
+${skills?.length ? skills.join(", ") : "General Development"}
+
+STRICT RULES:
+- Generate EXACTLY ${count} questions
+- No repeated questions
+- Return ONLY valid JSON
+- No markdown
+- No explanation
+
+OUTPUT FORMAT:
+
+[
+  {
+    "type": "technical",
+    "skill": "React",
+    "question": "Explain Virtual DOM in React"
+  }
+]
+`,
+      },
+    ];
+
+    const response = await askAi(messages);
+
+    const cleaned = response
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    return JSON.parse(cleaned);
+  } catch (error) {
+    console.error("Question Generation Error:", error);
+    return [];
+  }
+}
 
 app.post("/form", async (req, res) => {
   try {
@@ -212,17 +429,8 @@ app.post("/form", async (req, res) => {
       });
     }
 
-    console.log("Incoming Form Data:");
-
-    console.log({
-      role,
-      experience,
-      questions,
-      mode,
-    });
-
     const generatedQuestions = await generateQuestions(
-      skills,
+      extractedSkills,
       role,
       experience,
       mode,
@@ -234,13 +442,8 @@ app.post("/form", async (req, res) => {
       experience,
       totalQuestions: questions,
       mode,
-
       questions: generatedQuestions,
-
       answers: [],
-
-      currentQuestion: 0,
-
       createdAt: new Date(),
     };
 
@@ -250,180 +453,63 @@ app.post("/form", async (req, res) => {
 
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
-    console.log("Report Saved");
-
-    res.status(200).json({
+    return res.json({
       success: true,
-      message: "Questions Generated",
+      message: "Questions generated successfully",
       questions: generatedQuestions,
       reportFile: fileName,
     });
   } catch (error) {
-    console.error("Question Generation Error:", error);
+    console.error("Form Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to generate questions",
     });
   }
 });
 
-// ================= AI QUESTION GENERATOR =================
-
-const generateQuestions = async (skills, role, experience, mode, count) => {
-  try {
-    const messages = [
-      {
-        role: "system",
-
-        content:
-          "You are an expert AI interviewer that generates professional interview questions.",
-      },
-
-      {
-        role: "user",
-
-        content: `
-
-Generate EXACTLY ${count} interview questions.
-
-CANDIDATE DETAILS:
-
-Role: ${role}
-
-Experience: ${experience} years
-
-Interview Type: ${mode}
-
-Skills:
-${skills?.length ? skills.join(", ") : "General Development"}
-
-
-STRICT RULES:
-
-- Generate EXACTLY ${count} questions
-- No repeated questions
-- Keep questions concise
-- Match difficulty according to experience
-- Technical Interview → only technical questions
-- HR Interview → only HR/behavioral questions
-- Return ONLY valid JSON
-- No markdown
-- No explanation
-
-
-OUTPUT FORMAT:
-
-[
-  {
-    "type": "technical",
-    "skill": "React",
-    "question": "Explain Virtual DOM in React"
-  }
-]
-
-`,
-      },
-    ];
-
-    const response = await askAi(messages);
-
-    const cleaned = response
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
-    const parsedQuestions = JSON.parse(cleaned);
-
-    return parsedQuestions;
-  } catch (error) {
-    console.error("AI Question Generation Failed:", error);
-
-    return [];
-  }
-};
+/* ======================================================
+   TRANSCRIBE
+====================================================== */
 
 app.post("/transcribe", upload.single("audio"), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No audio uploaded",
+      });
+    }
+
     const audioPath = req.file.path;
 
     const formData = new FormData();
+
     formData.append("audio", fs.createReadStream(audioPath));
 
     const response = await fetch("http://localhost:5000/transcribe", {
       method: "POST",
       body: formData,
+      headers: formData.getHeaders(),
     });
 
     const data = await response.json();
 
     return res.json(data);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Transcription failed" });
-  }
-});
-
-/* ======================= START INTERVIEW ======================= */
-
-function getLatestReportPath() {
-  const files = fs.readdirSync(reportDir);
-
-  if (!files.length) {
-    return null;
-  }
-
-  const latestFile = files
-    .map((file) => ({
-      name: file,
-      time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
-    }))
-    .sort((a, b) => b.time - a.time)[0];
-
-  return path.join(reportDir, latestFile.name);
-}
-
-app.get("/view-report", (req, res) => {
-  try {
-    const reportDir = path.join(__dirname, "..", "reports");
-
-    if (!fs.existsSync(reportDir)) {
-      return res.status(404).json({
-        success: false,
-        message: "Report folder not found",
-      });
-    }
-
-    const files = fs.readdirSync(reportDir);
-
-    if (!files.length) {
-      return res.status(404).json({
-        success: false,
-        message: "No reports found",
-      });
-    }
-
-    const latest = files
-      .map((file) => ({
-        name: file,
-        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
-      }))
-      .sort((a, b) => b.time - a.time)[0].name;
-
-    const reportPath = path.join(reportDir, latest);
-
-    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
-
-    res.json(report);
   } catch (error) {
-    console.log(error);
+    console.error("Transcription Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to load report",
+      message: "Transcription failed",
     });
   }
 });
+
+/* ======================================================
+   SAVE ANSWER
+====================================================== */
 
 app.post("/save-answer", (req, res) => {
   try {
@@ -444,163 +530,81 @@ app.post("/save-answer", (req, res) => {
       report.answers[questionIndex] = {};
     }
 
-    // ================= COMBINE ANSWERS =================
-
     const finalAnswer = `
 ${typedText || ""}
 ${transcript || ""}
 `.trim();
 
-    report.answers[questionIndex].answer = finalAnswer;
-
-    report.answers[questionIndex].typedText = typedText || "";
-
-    report.answers[questionIndex].transcript = transcript || "";
-
-    report.answers[questionIndex].savedAt = new Date();
+    report.answers[questionIndex] = {
+      answer: finalAnswer,
+      typedText: typedText || "",
+      transcript: transcript || "",
+      savedAt: new Date(),
+    };
 
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
-    console.log(`Saved Answer Q${questionIndex + 1}`);
-
-    res.json({
+    return res.json({
       success: true,
       message: "Answer saved successfully",
     });
   } catch (error) {
     console.error("Save Answer Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to save answer",
     });
   }
 });
 
+/* ======================================================
+   INTERVIEW FEEDBACK
+====================================================== */
+
 app.post("/interview-feedback", async (req, res) => {
   try {
-    /* ================= GET REPORT ================= */
+    const reportPath = getLatestReportPath();
 
-    const reportDir = path.join(__dirname, "..", "reports");
-
-    if (!fs.existsSync(reportDir)) {
-      return res.status(400).json({
+    if (!reportPath) {
+      return res.status(404).json({
         success: false,
-        message: "Report folder not found",
+        message: "No report found",
       });
     }
-
-    const files = fs.readdirSync(reportDir);
-
-    if (!files.length) {
-      return res.status(400).json({
-        success: false,
-        message: "No reports found",
-      });
-    }
-
-    const latestFile = files
-      .map((file) => ({
-        name: file,
-        time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
-      }))
-      .sort((a, b) => b.time - a.time)[0];
-
-    const reportPath = path.join(reportDir, latestFile.name);
-
-    console.log("Using Report:", reportPath);
 
     const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
 
-    /* ================= VALIDATION ================= */
-
-    if (!report.questions || !report.questions.length) {
-      return res.status(400).json({
-        success: false,
-        message: "No questions found",
-      });
-    }
-
-    if (!report.answers || !report.answers.length) {
+    if (!report.answers?.length) {
       return res.status(400).json({
         success: false,
         message: "No answers found",
       });
     }
 
-    if (!report.feedbacks) {
-      report.feedbacks = [];
-    }
-
-    /* ================= PROCESS ANSWERS ================= */
-
     for (let i = 0; i < report.questions.length; i++) {
-      const questionData = report.questions[i];
-      const answerData = report.answers[i] || {};
+      const question = report.questions[i];
+      const answer = report.answers[i];
 
-      /* ================= COMBINE ANSWERS ================= */
-
-      const finalAnswer = `
-${answerData.typedText || ""}
-${answerData.transcript || ""}
-${answerData.answer || ""}
-`.trim();
-
-      /* ================= SKIP EMPTY ================= */
-
-      if (!finalAnswer) {
-        console.log(`Skipping Q${i + 1} - Empty Answer`);
-        continue;
-      }
-
-      /* ================= SKIP EXISTING FEEDBACK ================= */
-
-      if (
-        answerData.feedback &&
-        answerData.feedback.score &&
-        answerData.feedback.score > 0
-      ) {
-        console.log(`Feedback already exists for Q${i + 1}`);
-        continue;
-      }
-
-      console.log(`Evaluating Q${i + 1}`);
-
-      /* ================= AI PROMPT ================= */
+      if (!answer || !answer.answer) continue;
 
       const messages = [
         {
           role: "system",
           content: `
-You are an expert AI technical interviewer.
+You are an expert AI interviewer.
 
-Evaluate interview answers professionally.
-
-IMPORTANT RULES:
-- Return ONLY valid JSON
-- No markdown
-- No explanation
-- No extra text
-- Scores must be percentages (0-100)
-- Be strict but fair
-
-JSON FORMAT:
+Return ONLY valid JSON.
 
 {
   "score": 85,
   "communicationScore": 80,
   "technicalScore": 90,
-  "communication": "Clear communication and confident explanation.",
-  "technical": "Strong technical understanding with good examples.",
-  "strengths": [
-    "Explained concepts clearly",
-    "Used good examples"
-  ],
-  "improvements": [
-    "Can improve answer structure",
-    "Add more technical depth"
-  ],
-  "summary": "Strong overall answer with good technical knowledge.",
+  "communication": "Clear communication.",
+  "technical": "Strong technical knowledge.",
+  "strengths": ["Good examples"],
+  "improvements": ["Improve structure"],
+  "summary": "Strong answer overall.",
   "rating": "Very Good"
 }
 `,
@@ -610,89 +614,37 @@ JSON FORMAT:
           role: "user",
           content: `
 Question:
-${questionData?.question || "Unknown Question"}
+${question.question}
 
 Answer:
-${finalAnswer}
+${answer.answer}
 `,
         },
       ];
 
-      /* ================= AI RESPONSE ================= */
-
-      const aiResponse = await askAi(messages);
-
-      console.log("AI Response:", aiResponse);
-
-      let feedback;
-
-      /* ================= PARSE JSON ================= */
-
       try {
-        const match = aiResponse.match(/{[\s\S]*}/);
+        const aiResponse = await askAi(messages);
 
-        if (!match) {
-          throw new Error("No JSON found");
-        }
-
-        const cleaned = match[0]
+        const cleaned = aiResponse
           .replace(/```json/g, "")
           .replace(/```/g, "")
           .trim();
 
-        feedback = JSON.parse(cleaned);
+        const feedback = JSON.parse(cleaned);
 
-        if (
-          typeof feedback.score !== "number" ||
-          !feedback.communication ||
-          !feedback.technical
-        ) {
-          throw new Error("Invalid feedback structure");
-        }
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError.message);
+        report.answers[i].feedback = feedback;
 
-        feedback = {
-          score: 0,
-          communicationScore: 0,
-          technicalScore: 0,
-          communication: "AI evaluation failed.",
-          technical: "AI evaluation failed.",
-          strengths: [],
-          improvements: ["Please regenerate feedback"],
-          summary: "Could not evaluate answer.",
-          rating: "Poor",
-        };
+        report.answers[i].evaluatedAt = new Date();
+      } catch (error) {
+        console.error(`Feedback Error Q${i + 1}:`, error);
       }
-
-      /* ================= SAVE FEEDBACK ================= */
-
-      report.answers[i].finalAnswer = finalAnswer;
-
-      report.answers[i].feedback = feedback;
-
-      report.answers[i].evaluatedAt = new Date();
-
-      report.feedbacks.push({
-        question: questionData?.question,
-        finalAnswer,
-        feedback,
-      });
-
-      console.log(`Feedback Saved For Q${i + 1}`);
     }
-
-    /* ================= SAVE REPORT ================= */
 
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
-    console.log("Report Updated Successfully");
-
-    /* ================= RESPONSE ================= */
-
     return res.json({
       success: true,
-      message: "Interview feedback generated successfully",
+      message: "Feedback generated successfully",
       report,
     });
   } catch (error) {
@@ -700,81 +652,109 @@ ${finalAnswer}
 
     return res.status(500).json({
       success: false,
-      message: "Failed to generate interview feedback",
-      error: error.message,
+      message: "Feedback generation failed",
     });
   }
 });
 
-async function getConfidenceScore() {
+/* ======================================================
+   VIEW REPORT
+====================================================== */
+app.get("/view-report", (req, res) => {
   try {
-    const res = await fetch("http://localhost:8000/confidence");
-    const data = await res.json();
-
-    console.log("Confidence Score:", data.confidence_score);
-
-    return data.confidence_score || 0;
-  } catch (err) {
-    console.error("Error fetching confidence:", err);
-    return 0;
-  }
-}
-
-app.get("/view-report", async (req, res) => {
-  try {
-    const reportDir = path.join(__dirname, "..", "reports");
-
-    if (!fs.existsSync(reportDir)) {
-      fs.mkdirSync(reportDir, { recursive: true });
-      return res.status(400).send("No reports available yet");
-    }
-
     const reportPath = getLatestReportPath();
 
-    console.log("Using JSON report:", reportPath);
+    console.log("REPORT PATH:", reportPath);
 
-    // Read JSON file
-    const reportData = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
+    if (!reportPath) {
+      return res.status(404).json({
+        success: false,
+        message: "No report found",
+      });
+    }
 
-    // Send JSON to frontend
-    res.json(reportData);
+    /* ================= READ FILE ================= */
+
+    const rawData = fs.readFileSync(reportPath, "utf-8");
+
+    console.log("RAW DATA LENGTH:", rawData.length);
+
+    /* ================= PARSE JSON ================= */
+
+    const report = JSON.parse(rawData);
+
+    console.log("REPORT LOADED SUCCESSFULLY");
+
+    return res.json(report);
   } catch (error) {
-    console.error("View Report Error:", error);
-    return res.status(500).send(error.message);
+    console.error("VIEW REPORT ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load report",
+      error: error.message,
+    });
   }
 });
+/* ======================================================
+   DOWNLOAD PDF REPORT
+====================================================== */
 
 app.get("/download-report", async (req, res) => {
   try {
-    const reportDir = path.join(__dirname, "..", "reports");
+    const reportPath = getLatestReportPath();
 
-    if (!fs.existsSync(reportDir)) {
-      fs.mkdirSync(reportDir, { recursive: true });
-      return res.status(400).send("No reports available yet");
+    if (!reportPath) {
+      return res.status(404).json({
+        success: false,
+        message: "No report found",
+      });
     }
 
-    const reportPath = getLatestReport();
-
-    console.log("Using JSON report:", reportPath);
+    console.log("REPORT PATH:", reportPath);
 
     const confidenceScore = await getConfidenceScore();
 
-    const outputPath = path.join(reportDir, "report.pdf");
+    console.log("CONFIDENCE SCORE:", confidenceScore);
 
-    console.log("Confidence:", confidenceScore);
+    const outputPath = path.join(reportDir, "InterVexa-Report.pdf");
+
+    console.log("GENERATING PDF...");
+
+    /* ================= GENERATE PDF ================= */
 
     generatePDF(reportPath, outputPath, confidenceScore);
+
+    /* ================= WAIT ================= */
+
     setTimeout(() => {
-      if (fs.existsSync(outputPath)) {
-        return res.download(outputPath);
-      } else {
-        return res.status(500).send("PDF generation failed");
+      console.log("CHECKING PDF...");
+
+      if (!fs.existsSync(outputPath)) {
+        console.log("PDF NOT FOUND");
+
+        return res.status(500).json({
+          success: false,
+          message: "PDF generation failed",
+        });
       }
-    }, 700);
+
+      console.log("PDF READY");
+
+      return res.download(outputPath);
+    }, 2000);
   } catch (error) {
-    console.error("PDF Error:", error);
-    return res.status(500).send(error.message);
+    console.error("DOWNLOAD REPORT ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Download failed",
+      error: error.message,
+    });
   }
 });
+/* ======================================================
+   EXPORT
+====================================================== */
 
 module.exports = app;

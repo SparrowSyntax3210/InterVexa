@@ -1,6 +1,6 @@
 async function loadReport() {
   try {
-    const response = await fetch("/view-report");
+    const response = await fetch("http://localhost:4000/view-report");
 
     const report = await response.json();
 

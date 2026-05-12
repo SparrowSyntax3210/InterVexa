@@ -934,29 +934,53 @@ text-shadow:
 
 /* Floating Label */
 
+/* Floating Label */
+
 .input-group{
-position:relative;
+    position:relative;
 }
+
+/* LABEL */
 
 .input-group label{
-position:absolute;
-top:50%;
-left:14px;
+    position:absolute;
 
-transform:translateY(-50%);
+    top:50%;
+    left:14px;
 
-color:rgba(255,255,255,0.5);
+    transform:translateY(-50%);
 
-transition:0.3s;
-pointer-events:none;
+    color:rgba(255,255,255,0.5);
+
+    transition:0.3s ease;
+
+    pointer-events:none;
+
+    background:#0E0E0E;
+
+    padding:0 6px;
 }
 
+/* INPUT FLOAT */
 
-input:focus + label,
-input:not(:placeholder-shown) + label {
-top:-8px;
-font-size:12px;
-color:white;
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label{
+    top:-8px;
+
+    font-size:12px;
+
+    color:var(--accent);
+}
+
+/* SELECT FLOAT */
+
+.input-group select:focus + label,
+.input-group select:valid + label{
+    top:-8px;
+
+    font-size:12px;
+
+    color:var(--accent);
 }
 
 
