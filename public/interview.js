@@ -160,7 +160,6 @@ function getActiveAnswerBox() {
 async function loadQuestions() {
   try {
     const response = await fetch("http://localhost:4000/interview/report");
-
     const report = await response.json();
 
     console.log("REPORT:", report);
@@ -174,6 +173,7 @@ async function loadQuestions() {
 
     report.questions.forEach((item, index) => {
       const card = document.createElement("div");
+
       if (index === 0) {
         card.className = "question-card active-question";
       } else if (index === 1) {
@@ -183,39 +183,29 @@ async function loadQuestions() {
       }
 
       card.innerHTML = `
-      
-      <div class="question-number">
-        ${String(index + 1).padStart(2, "0")}
-      </div>
-
-      <div class="question-content">
-
-        <h4>${item.question}</h4>
-
-        <div class="answer-wrapper">
-
-          <textarea
-            class="answer-box"
-            placeholder="Your answer..."
-          ></textarea>
-
-          <button class="submitAnswer">
-            Submit Answer
-          </button>
-
+        <div class="question-number">
+          ${String(index + 1).padStart(2, "0")}
         </div>
 
-      </div>
+        <div class="question-content">
+          <h4>${item.question}</h4>
 
-      <span class="question-time">
-        LIVE
-      </span>
-      
+          <div class="answer-wrapper">
+            <textarea
+              class="answer-box"
+              placeholder="Your answer..."
+            ></textarea>
+
+            <button class="submitAnswer">
+              Submit Answer
+            </button>
+          </div>
+        </div>
+
+        <span class="question-time">LIVE</span>
       `;
 
       questionList.appendChild(card);
-
-      /* ================= SUBMIT ANSWER ================= */
 
       const submitBtn = card.querySelector(".submitAnswer");
 
@@ -223,15 +213,10 @@ async function loadQuestions() {
         console.log("Submit Clicked");
 
         const answerBox = card.querySelector(".answer-box");
-
         const typedText = answerBox.value.trim();
-
         const transcript = answerBox.dataset.transcript || "";
 
-        const finalAnswer = `
-${typedText}
-${transcript}
-`.trim();
+        const finalAnswer = `${typedText}\n${transcript}`.trim();
 
         if (!finalAnswer) {
           answerBox.focus();
@@ -239,15 +224,12 @@ ${transcript}
         }
 
         try {
-          /* ================= SAVE ANSWER ================= */
-
+          /* SAVE ANSWER */
           await fetch("http://localhost:4000/save-answer", {
             method: "POST",
-
             headers: {
               "Content-Type": "application/json",
             },
-
             body: JSON.stringify({
               questionIndex: index,
               typedText,
@@ -257,22 +239,21 @@ ${transcript}
 
           console.log("Answer Saved");
 
-          /* ================= NEXT QUESTION ================= */
-
           card.style.display = "none";
 
           const nextCard = card.nextElementSibling;
 
+          /* NEXT QUESTION */
           if (nextCard) {
-            nextCard.classList.remove("next-question");
-            nextCard.classList.remove("hidden-question");
+            card.classList.remove("active-question");
 
+            nextCard.classList.remove("hidden-question", "next-question");
             nextCard.classList.add("active-question");
+
             const secondNext = nextCard.nextElementSibling;
 
             if (secondNext) {
               secondNext.classList.remove("hidden-question");
-
               secondNext.classList.add("next-question");
             }
 
@@ -291,35 +272,75 @@ ${transcript}
 
             askAIVoice(nextQuestion);
           } else {
+
+          /* INTERVIEW FINISHED */
             alert("Interview Completed");
             console.log("Interview Completed");
 
-            /* SHOW LOADING */
-
             const loadingScreen = document.getElementById("loadingScreen");
 
-            loadingScreen.classList.add("show");
+            if (loadingScreen) {
+              loadingScreen.classList.add("show");
+            }
 
-            /* GENERATE REPORT */
+            try {
+              /* STOP VIDEO */
+              const videoStream = document.getElementById("videoStream");
 
-            const response = await fetch(
-              "http://localhost:4000/interview-feedback",
-              {
-                method: "POST",
-              },
-            );
-
-            const data = await response.json();
-
-            console.log("Final Report:", data);
-
-            setTimeout(async () => {
-              if (document.fullscreenElement) {
-                await document.exitFullscreen();
+              if (videoStream) {
+                videoStream.src = "";
               }
 
-              window.location.href = "/dashboard.html";
-            }, 1500);
+              /* STOP MIC */
+              if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                console.log("Mic stopped");
+              }
+
+              audioChunks = [];
+
+              /* STOP AI SPEECH */
+              window.speechSynthesis.cancel();
+
+              /* STOP PYTHON SERVER */
+              await fetch("http://localhost:8000/stop", {
+                method: "POST",
+              });
+
+              console.log("OpenCV stopped");
+
+              /* REPORT GENERATION TIMEOUT */
+              const controller = new AbortController();
+
+              const timeout = setTimeout(() => {
+                controller.abort();
+              }, 60000);
+
+              const reportResponse = await fetch(
+                "http://localhost:4000/interview-feedback",
+                {
+                  method: "POST",
+                  signal: controller.signal,
+                },
+              );
+
+              clearTimeout(timeout);
+
+              const data = await reportResponse.json();
+
+              console.log("REPORT GENERATED:", data);
+
+              setTimeout(async () => {
+                if (document.fullscreenElement) {
+                  await document.exitFullscreen();
+                }
+
+                window.location.href = "/dashboard.html";
+              }, 1500);
+            } catch (error) {
+              console.error("FINAL ERROR:", error);
+              alert("Report generation failed");
+            }
           }
         } catch (error) {
           console.error("Submit Error:", error);
@@ -332,7 +353,6 @@ ${transcript}
     console.error("Load Question Error:", error);
   }
 }
-
 /* ================= START INTERVIEW ================= */
 
 async function startInterview() {

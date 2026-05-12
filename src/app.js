@@ -4,7 +4,8 @@ const fs = require("fs");
 const cors = require("cors");
 const multer = require("multer");
 const session = require("express-session");
-const fetch = require("node-fetch");
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const FormData = require("form-data");
 
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
@@ -564,6 +565,8 @@ ${transcript || ""}
 
 app.post("/interview-feedback", async (req, res) => {
   try {
+    console.log("STARTING FEEDBACK");
+
     const reportPath = getLatestReportPath();
 
     if (!reportPath) {
@@ -575,7 +578,7 @@ app.post("/interview-feedback", async (req, res) => {
 
     const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
 
-    if (!report.answers?.length) {
+    if (!report.answers || report.answers.length === 0) {
       return res.status(400).json({
         success: false,
         message: "No answers found",
@@ -587,6 +590,8 @@ app.post("/interview-feedback", async (req, res) => {
       const answer = report.answers[i];
 
       if (!answer || !answer.answer) continue;
+
+      console.log(`Generating feedback for Q${i + 1}`);
 
       const messages = [
         {
@@ -609,7 +614,6 @@ Return ONLY valid JSON.
 }
 `,
         },
-
         {
           role: "user",
           content: `
@@ -623,24 +627,63 @@ ${answer.answer}
       ];
 
       try {
-        const aiResponse = await askAi(messages);
+        const aiPromise = askAi(messages);
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("AI Timeout")), 40000),
+        );
+
+        const aiResponse = await Promise.race([aiPromise, timeoutPromise]);
+
+        console.log(`AI RESPONSE RECEIVED Q${i + 1}`);
 
         const cleaned = aiResponse
           .replace(/```json/g, "")
           .replace(/```/g, "")
           .trim();
 
-        const feedback = JSON.parse(cleaned);
+        let feedback;
+
+        try {
+          feedback = JSON.parse(cleaned);
+        } catch (err) {
+          console.log("JSON PARSE FAILED:", cleaned);
+
+          feedback = {
+            score: 0,
+            communicationScore: 0,
+            technicalScore: 0,
+            communication: "AI response invalid",
+            technical: "AI response invalid",
+            strengths: [],
+            improvements: ["Retry later"],
+            summary: "Could not parse AI response",
+            rating: "Error",
+          };
+        }
 
         report.answers[i].feedback = feedback;
-
         report.answers[i].evaluatedAt = new Date();
       } catch (error) {
         console.error(`Feedback Error Q${i + 1}:`, error);
+
+        report.answers[i].feedback = {
+          score: 0,
+          communicationScore: 0,
+          technicalScore: 0,
+          communication: "Evaluation failed",
+          technical: "Evaluation failed",
+          strengths: [],
+          improvements: ["Try again later"],
+          summary: "Could not evaluate answer",
+          rating: "Error",
+        };
       }
     }
 
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+
+    console.log("FEEDBACK DONE");
 
     return res.json({
       success: true,
@@ -648,11 +691,12 @@ ${answer.answer}
       report,
     });
   } catch (error) {
-    console.error("Interview Feedback Error:", error);
+    console.error("INTERVIEW FEEDBACK ERROR:", error);
 
     return res.status(500).json({
       success: false,
       message: "Feedback generation failed",
+      error: error.message,
     });
   }
 });
@@ -660,11 +704,9 @@ ${answer.answer}
 /* ======================================================
    VIEW REPORT
 ====================================================== */
-app.get("/view-report", (req, res) => {
+app.get("/view-report", async (req, res) => {
   try {
     const reportPath = getLatestReportPath();
-
-    console.log("REPORT PATH:", reportPath);
 
     if (!reportPath) {
       return res.status(404).json({
@@ -673,26 +715,41 @@ app.get("/view-report", (req, res) => {
       });
     }
 
-    /* ================= READ FILE ================= */
-
     const rawData = fs.readFileSync(reportPath, "utf-8");
-
-    console.log("RAW DATA LENGTH:", rawData.length);
-
-    /* ================= PARSE JSON ================= */
-
     const report = JSON.parse(rawData);
 
-    console.log("REPORT LOADED SUCCESSFULLY");
+    const confidenceScore = await getConfidenceScore();
 
-    return res.json(report);
+    const formattedAnswers = (report.answers || []).map((item, index) => {
+      return {
+        question: report.questions?.[index]?.question || "No Question",
+        answer: item.answer || "No Answer",
+        feedback: item.feedback || {
+          score: 0,
+          communicationScore: 0,
+          technicalScore: 0,
+          summary: "No summary available",
+          communication: "No communication feedback",
+          technical: "No technical feedback",
+        },
+      };
+    });
+
+    return res.json({
+      success: true,
+
+      answers: formattedAnswers,
+
+      stats: {
+        confidenceScore: Math.round(confidenceScore),
+      },
+    });
   } catch (error) {
     console.error("VIEW REPORT ERROR:", error);
 
     return res.status(500).json({
       success: false,
       message: "Failed to load report",
-      error: error.message,
     });
   }
 });

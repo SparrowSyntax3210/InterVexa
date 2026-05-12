@@ -42,27 +42,23 @@ async function loadReport() {
 
         <div class="report-section">
 
-          <h3>Question:</h3>
+  <h3>Question:</h3>
 
-          <p>
-            ${report.questions[index]?.question || "No Question"}
-          </p>
+  <p>
+    ${item.question || "No Question"}
+  </p>
 
-        </div>
+</div>
 
-        <div class="report-section">
+<div class="report-section">
 
-          <h3>Answer:</h3>
+  <h3>Answer:</h3>
 
-          <p>
-            ${
-              item.finalAnswer
-                ? item.finalAnswer.split("\n")[0]
-                : item.answer || "No Answer"
-            }
-          </p>
+  <p>
+    ${item.answer || "No Answer"}
+  </p>
 
-        </div>
+</div>
 
         <div class="score-box">
 
@@ -133,7 +129,8 @@ async function loadReport() {
 
     document.getElementById("totalInterviews").innerText = totalInterviews;
 
-    document.getElementById("confidenceScore").innerText = avgScore + "%";
+    document.getElementById("confidenceScore").innerText =
+      (report.stats?.confidenceScore || 0) + "%";
 
     document.getElementById("bestScore").innerText = bestScore + "%";
 

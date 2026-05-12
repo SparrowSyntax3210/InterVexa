@@ -193,6 +193,13 @@ def get_score():
         "confidence_score": confidence_score
     })
 
+@app.route("/stop", methods=["POST"])
+def stop():
+    global is_tracking
+    is_tracking = False
+    cv2.destroyAllWindows()
+
+    return jsonify({"message": "stopped"})
 # -------------------------------
 # Run Server
 # -------------------------------
