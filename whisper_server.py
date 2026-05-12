@@ -15,33 +15,41 @@ CORS(app, origins=["http://localhost:4000"])
 print("Loading Whisper model...")
 model = whisper.load_model("base")
 print("Whisper model loaded")
+is_transcribing = False
 
 
 @app.route("/")
 def home():
     return "Whisper Server Running"
+@app.route("/stop", methods=["POST"])
+def stop():
+    global is_transcribing
+    is_transcribing = False
+
+    return jsonify({
+        "message": "whisper stopped"
+    })
 
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
-    try:
-        print("\Request received")
-        print("FILES:", request.files)
+    global is_transcribing
 
-        if 'audio' not in request.files:
-            print("No audio in request")
+    try:
+        is_transcribing = True
+        print("Request received")
+
+        if "audio" not in request.files:
+            is_transcribing = False
             return jsonify({"error": "No audio"}), 400
 
-        file = request.files['audio']
-        print("Audio received:", file.filename)
+        file = request.files["audio"]
 
         timestamp = str(int(datetime.now().timestamp()))
         filepath = f"audio_{timestamp}.webm"
         wavpath = f"audio_{timestamp}.wav"
 
-        # Save file
         file.save(filepath)
-        print("Saved:", filepath)
 
         command = [
             "ffmpeg", "-y",
@@ -54,66 +62,27 @@ def transcribe():
         result = subprocess.run(command, capture_output=True, text=True)
 
         if result.returncode != 0:
-            print("FFmpeg Error:", result.stderr)
+            is_transcribing = False
             return jsonify({"error": "Audio conversion failed"}), 500
-
-        print("Converted to WAV:", wavpath)
 
         result = model.transcribe(wavpath)
         text = result.get("text", "")
 
-        print("Transcript:", text)
-
-        # ===== Save Answer to Report =====
-        report_dir = os.path.join(os.getcwd(), "reports")
-
-        if os.path.exists(report_dir):
-            files = os.listdir(report_dir)
-
-            if files:
-                latest_file = max(
-                    files,
-                    key=lambda f: os.path.getmtime(
-                        os.path.join(report_dir, f)
-                    )
-                )
-
-                report_path = os.path.join(report_dir, latest_file)
-
-                with open(report_path, "r") as f:
-                    report = json.load(f)
-
-                current_index = report.get("currentQuestion", 0)
-
-                if current_index < len(report.get("questions", [])):
-                    current_question = report["questions"][current_index]
-
-                    if "answers" not in report:
-                        report["answers"] = []
-
-                    report["answers"].append({
-                        "question": current_question["question"],
-                        "answer": text,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    })
-
-                    report["currentQuestion"] = current_index + 1
-
-                    with open(report_path, "w") as f:
-                        json.dump(report, f, indent=4)
-
-                    print("Answer saved:", current_question["question"])
-
         if os.path.exists(filepath):
             os.remove(filepath)
+
         if os.path.exists(wavpath):
             os.remove(wavpath)
+
+        is_transcribing = False
 
         return jsonify({"text": text})
 
     except Exception as e:
+        is_transcribing = False
         print("SERVER ERROR:", str(e))
         return jsonify({"error": "Internal server error"}), 500
+        
 
 
 if __name__ == "__main__":

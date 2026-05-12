@@ -272,10 +272,8 @@ async function loadQuestions() {
 
             askAIVoice(nextQuestion);
           } else {
-
-          /* INTERVIEW FINISHED */
+            /* INTERVIEW FINISHED */
             alert("Interview Completed");
-            console.log("Interview Completed");
 
             const loadingScreen = document.getElementById("loadingScreen");
 
@@ -292,24 +290,40 @@ async function loadQuestions() {
               }
 
               /* STOP MIC */
-              if (mediaRecorder && mediaRecorder.state !== "inactive") {
+              if (
+                typeof mediaRecorder !== "undefined" &&
+                mediaRecorder &&
+                mediaRecorder.state !== "inactive"
+              ) {
                 mediaRecorder.stop();
                 console.log("Mic stopped");
               }
 
-              audioChunks = [];
+              if (typeof audioChunks !== "undefined") {
+                audioChunks = [];
+              }
 
-              /* STOP AI SPEECH */
+              /* STOP SPEECH */
               window.speechSynthesis.cancel();
 
-              /* STOP PYTHON SERVER */
+              /* STOP OPENCV */
               await fetch("http://localhost:8000/stop", {
                 method: "POST",
               });
 
-              console.log("OpenCV stopped");
+              /* STOP WHISPER */
+              await fetch("http://localhost:5000/stop", {
+                method: "POST",
+              });
 
-              /* REPORT GENERATION TIMEOUT */
+              console.log("Python services stopped");
+
+              /* WAIT FOR PYTHON CLEANUP */
+              await new Promise((resolve) => setTimeout(resolve, 4000));
+
+              console.log("Generating report...");
+
+              /* GENERATE REPORT */
               const controller = new AbortController();
 
               const timeout = setTimeout(() => {
@@ -329,6 +343,10 @@ async function loadQuestions() {
               const data = await reportResponse.json();
 
               console.log("REPORT GENERATED:", data);
+
+              if (!data.success) {
+                throw new Error("Report generation failed");
+              }
 
               setTimeout(async () => {
                 if (document.fullscreenElement) {
