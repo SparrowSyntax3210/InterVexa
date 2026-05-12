@@ -647,10 +647,33 @@ body{
 
 /* QUESTIONS */
 
-.question-list{
-    display:flex;
-    flex-direction:column;
-    gap:18px;
+.question-list {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* ACTIVE */
+
+.active-question {
+    opacity: 1;
+    transform: scale(1);
+    z-index: 2;
+}
+
+/* SECOND VISIBLE CARD */
+
+.next-question {
+    opacity: 0.6;
+    transform: scale(0.96);
+    margin-top: -10px;
+}
+
+/* HIDDEN REST */
+
+.hidden-question {
+    display: none;
 }
 
 .question-card{
@@ -712,6 +735,14 @@ body{
     font-size:14px;
 }
 
+.hidden-question {
+    opacity: 0;
+    transform: scale(0.9) translateY(30px);
+    pointer-events: none;
+    position: absolute;
+}
+
+
 .answer-box{
     width:100%;
     min-height:180px;
@@ -757,6 +788,59 @@ body{
     border-radius:10px;
 }
 
+.submitAnswer{
+    margin-top:16px;
+
+    padding:12px 22px;
+
+    border:none;
+    outline:none;
+
+    border-radius:14px;
+
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+
+    color:white;
+
+    font-size:14px;
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:0.3s ease;
+
+    backdrop-filter:blur(10px);
+}
+
+/* HOVER */
+
+.submitAnswer:hover{
+    border-color:var(--accent-soft);
+
+    background:rgba(0,255,255,0.08);
+
+    box-shadow:0 0 25px rgba(0,255,255,0.12);
+
+    transform:translateY(-2px);
+}
+
+/* CLICK */
+
+.submitAnswer:active{
+    transform:scale(0.97);
+}
+
+/* OPTIONAL ACTIVE STYLE */
+
+.submitAnswer.active{
+    background:rgba(0,255,255,0.12);
+
+    border-color:var(--accent);
+
+    color:var(--accent);
+}
+
 /* NOTES */
 
 .notes-card p{
@@ -765,6 +849,81 @@ body{
     line-height:1.7;
 }
 
+.loading-screen{
+    position:fixed;
+
+    top:0;
+    left:0;
+
+    width:100%;
+    height:100vh;
+
+    background:#000;
+
+    display:flex;
+    flex-direction:column;
+
+    align-items:center;
+    justify-content:center;
+
+    gap:20px;
+
+    z-index:99999;
+
+    opacity:0;
+    visibility:hidden;
+
+    transition:0.4s ease;
+}
+
+/* SHOW */
+
+.loading-screen.show{
+    opacity:1;
+    visibility:visible;
+}
+
+/* SPINNER */
+
+.loader{
+    width:70px;
+    height:70px;
+
+    border-radius:50%;
+
+    border:5px solid rgba(255,255,255,0.1);
+
+    border-top-color:var(--accent);
+
+    animation:spin 1s linear infinite;
+
+    box-shadow:0 0 30px rgba(0,255,255,0.2);
+}
+
+/* TEXT */
+
+.loading-screen h2{
+    color:white;
+    font-size:24px;
+    font-weight:700;
+
+    margin:0;
+}
+
+.loading-screen p{
+    color:#aaa;
+    font-size:15px;
+
+    margin:0;
+}
+
+/* ANIMATION */
+
+@keyframes spin{
+    to{
+        transform:rotate(360deg);
+    }
+}
 /* RESPONSIVE */
 
 @media(max-width:1200px){
@@ -813,3 +972,4 @@ body{
     }
 
 }
+

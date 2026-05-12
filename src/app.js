@@ -425,9 +425,61 @@ app.get("/view-report", (req, res) => {
   }
 });
 
+app.post("/save-answer", (req, res) => {
+  try {
+    const { questionIndex, typedText, transcript } = req.body;
+
+    const reportPath = getLatestReportPath();
+
+    if (!reportPath) {
+      return res.status(404).json({
+        success: false,
+        message: "No report found",
+      });
+    }
+
+    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
+
+    if (!report.answers[questionIndex]) {
+      report.answers[questionIndex] = {};
+    }
+
+    // ================= COMBINE ANSWERS =================
+
+    const finalAnswer = `
+${typedText || ""}
+${transcript || ""}
+`.trim();
+
+    report.answers[questionIndex].answer = finalAnswer;
+
+    report.answers[questionIndex].typedText = typedText || "";
+
+    report.answers[questionIndex].transcript = transcript || "";
+
+    report.answers[questionIndex].savedAt = new Date();
+
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+
+    console.log(`Saved Answer Q${questionIndex + 1}`);
+
+    res.json({
+      success: true,
+      message: "Answer saved successfully",
+    });
+  } catch (error) {
+    console.error("Save Answer Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to save answer",
+    });
+  }
+});
+
 app.post("/interview-feedback", async (req, res) => {
   try {
-    /* ================= REPORT DIRECTORY ================= */
+    /* ================= GET REPORT ================= */
 
     const reportDir = path.join(__dirname, "..", "reports");
 
@@ -438,8 +490,6 @@ app.post("/interview-feedback", async (req, res) => {
       });
     }
 
-    /* ================= GET LATEST REPORT ================= */
-
     const files = fs.readdirSync(reportDir);
 
     if (!files.length) {
@@ -449,61 +499,61 @@ app.post("/interview-feedback", async (req, res) => {
       });
     }
 
-    const latest = files
+    const latestFile = files
       .map((file) => ({
         name: file,
         time: fs.statSync(path.join(reportDir, file)).mtime.getTime(),
       }))
-      .sort((a, b) => b.time - a.time)[0].name;
+      .sort((a, b) => b.time - a.time)[0];
 
-    const reportPath = path.join(reportDir, latest);
+    const reportPath = path.join(reportDir, latestFile.name);
 
-    console.log("Using report:", reportPath);
-
-    /* ================= READ REPORT ================= */
+    console.log("Using Report:", reportPath);
 
     const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
 
     /* ================= VALIDATION ================= */
 
-    if (!report.answers || !report.answers.length) {
-      return res.status(400).json({
-        success: false,
-        message: "No answers found in report",
-      });
-    }
-
     if (!report.questions || !report.questions.length) {
       return res.status(400).json({
         success: false,
-        message: "No questions found in report",
+        message: "No questions found",
       });
     }
 
-    /* ================= INIT FEEDBACK ARRAY ================= */
+    if (!report.answers || !report.answers.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No answers found",
+      });
+    }
 
     if (!report.feedbacks) {
       report.feedbacks = [];
     }
 
-    /* ================= LOOP THROUGH ANSWERS ================= */
+    /* ================= PROCESS ANSWERS ================= */
 
-    for (let i = 0; i < report.answers.length; i++) {
-      const answerData = report.answers[i];
+    for (let i = 0; i < report.questions.length; i++) {
       const questionData = report.questions[i];
+      const answerData = report.answers[i] || {};
 
-      /* ================= SKIP EMPTY ANSWERS ================= */
+      /* ================= COMBINE ANSWERS ================= */
 
-      if (
-        !answerData ||
-        !answerData.answer ||
-        answerData.answer.trim() === ""
-      ) {
-        console.log(`Skipping empty answer ${i + 1}`);
+      const finalAnswer = `
+${answerData.typedText || ""}
+${answerData.transcript || ""}
+${answerData.answer || ""}
+`.trim();
+
+      /* ================= SKIP EMPTY ================= */
+
+      if (!finalAnswer) {
+        console.log(`Skipping Q${i + 1} - Empty Answer`);
         continue;
       }
 
-      /* ================= SKIP VALID FEEDBACK ================= */
+      /* ================= SKIP EXISTING FEEDBACK ================= */
 
       if (
         answerData.feedback &&
@@ -514,57 +564,69 @@ app.post("/interview-feedback", async (req, res) => {
         continue;
       }
 
-      console.log(`Evaluating Question ${i + 1}`);
+      console.log(`Evaluating Q${i + 1}`);
 
       /* ================= AI PROMPT ================= */
 
       const messages = [
         {
           role: "system",
-          content:
-            "You are a strict technical interviewer. Return ONLY valid JSON. No markdown. No explanation.",
+          content: `
+You are an expert AI technical interviewer.
+
+Evaluate interview answers professionally.
+
+IMPORTANT RULES:
+- Return ONLY valid JSON
+- No markdown
+- No explanation
+- No extra text
+- Scores must be percentages (0-100)
+- Be strict but fair
+
+JSON FORMAT:
+
+{
+  "score": 85,
+  "communicationScore": 80,
+  "technicalScore": 90,
+  "communication": "Clear communication and confident explanation.",
+  "technical": "Strong technical understanding with good examples.",
+  "strengths": [
+    "Explained concepts clearly",
+    "Used good examples"
+  ],
+  "improvements": [
+    "Can improve answer structure",
+    "Add more technical depth"
+  ],
+  "summary": "Strong overall answer with good technical knowledge.",
+  "rating": "Very Good"
+}
+`,
         },
 
         {
           role: "user",
           content: `
-Evaluate the following interview answer.
-
 Question:
 ${questionData?.question || "Unknown Question"}
 
 Answer:
-${answerData.answer}
-
-Return ONLY valid JSON in this exact format:
-
-{
-  "score": 78,
-  "communication": "Clear and confident communication.",
-  "technical": "Good technical understanding with examples.",
-  "strengths": [
-    "Explained concepts clearly",
-    "Used practical examples"
-  ],
-  "improvements": [
-    "Can improve structure",
-    "Add more technical depth"
-  ],
-  "rating": 78
-}
+${finalAnswer}
 `,
         },
       ];
 
-      /* ================= ASK AI ================= */
+      /* ================= AI RESPONSE ================= */
 
       const aiResponse = await askAi(messages);
 
-      console.log("Raw AI Response:", aiResponse);
+      console.log("AI Response:", aiResponse);
 
       let feedback;
 
-      /* ================= PARSE RESPONSE ================= */
+      /* ================= PARSE JSON ================= */
 
       try {
         const match = aiResponse.match(/{[\s\S]*}/);
@@ -580,8 +642,6 @@ Return ONLY valid JSON in this exact format:
 
         feedback = JSON.parse(cleaned);
 
-        /* ================= VALIDATE RESPONSE ================= */
-
         if (
           typeof feedback.score !== "number" ||
           !feedback.communication ||
@@ -590,50 +650,61 @@ Return ONLY valid JSON in this exact format:
           throw new Error("Invalid feedback structure");
         }
       } catch (parseError) {
-        console.error("JSON Parse Failed:", parseError.message);
+        console.error("JSON Parse Error:", parseError.message);
 
         feedback = {
           score: 0,
-          communication: "AI evaluation could not be completed.",
-          technical: "AI evaluation could not be completed.",
+          communicationScore: 0,
+          technicalScore: 0,
+          communication: "AI evaluation failed.",
+          technical: "AI evaluation failed.",
           strengths: [],
           improvements: ["Please regenerate feedback"],
-          rating: 0,
+          summary: "Could not evaluate answer.",
+          rating: "Poor",
         };
       }
+
+      /* ================= SAVE FEEDBACK ================= */
+
+      report.answers[i].finalAnswer = finalAnswer;
+
+      report.answers[i].feedback = feedback;
+
+      report.answers[i].evaluatedAt = new Date();
+
+      report.feedbacks.push({
+        question: questionData?.question,
+        finalAnswer,
+        feedback,
+      });
+
+      console.log(`Feedback Saved For Q${i + 1}`);
     }
 
-    /* ================= SAVE UPDATED REPORT ================= */
+    /* ================= SAVE REPORT ================= */
 
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
+    console.log("Report Updated Successfully");
+
     /* ================= RESPONSE ================= */
 
-    res.json({
+    return res.json({
       success: true,
-      message: "Interview feedback generated",
+      message: "Interview feedback generated successfully",
       report,
     });
   } catch (error) {
     console.error("Interview Feedback Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to generate feedback",
+      message: "Failed to generate interview feedback",
       error: error.message,
     });
   }
-  answerData.feedback = feedback;
-
-  answerData.evaluatedAt = new Date();
-
-  report.feedbacks.push({
-    question: questionData?.question,
-    feedback,
-  });
 });
-
-/* ================= SAVE FEEDBACK ================= */
 
 async function getConfidenceScore() {
   try {

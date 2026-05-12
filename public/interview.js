@@ -4,46 +4,57 @@ let startBtn;
 let stopBtn;
 let videoBtn;
 let VoiceBtn;
+let dashboardBtn;
 
 let questionList;
 
 let mediaRecorder;
 let audioChunks = [];
 
+let isRecording = false;
+let isVideoOn = true;
+
+const overlay = document.getElementById("fullscreenOverlay");
+
+overlay.addEventListener("click", async () => {
+  try {
+    await document.documentElement.requestFullscreen();
+
+    overlay.style.display = "none";
+
+    console.log("Overlay Removed");
+
+    /* START INTERVIEW HERE */
+
+    await startInterview();
+  } catch (error) {
+    console.log("Fullscreen Error:", error);
+  }
+});
 /* ================= DOM READY ================= */
 
 window.addEventListener("DOMContentLoaded", async () => {
   console.log("JS Loaded");
 
   startBtn = document.getElementById("startBtn");
-
   stopBtn = document.getElementById("stopBtn");
-
   videoBtn = document.getElementById("videoBtn");
-
   VoiceBtn = document.getElementById("micBtn");
+  dashboardBtn = document.getElementById("dashboardBtn");
 
   questionList = document.querySelector(".question-list");
 
   initButtons();
 
   await loadQuestions();
-
-  await startInterview();
 });
 
 /* ================= BUTTONS ================= */
 
 function initButtons() {
-  /* ===== START RECORDING ===== */
-
   /* ================= MIC TOGGLE ================= */
 
-  let isRecording = false;
-
   VoiceBtn.addEventListener("click", async () => {
-    /* ===== STOP RECORDING ===== */
-
     if (isRecording && mediaRecorder) {
       mediaRecorder.stop();
 
@@ -58,16 +69,8 @@ function initButtons() {
       return;
     }
 
-    /* ===== START RECORDING ===== */
-
     try {
       console.log("Recording Started");
-
-      const answerBox = getActiveAnswerBox();
-
-      if (answerBox) {
-        answerBox.value = "";
-      }
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -95,154 +98,13 @@ function initButtons() {
     }
   });
 
-  const warningPopup = document.getElementById("warningPopup");
-
-  const warningText = document.getElementById("warningText");
-
-  const warningOkBtn = document.getElementById("warningOkBtn");
-
-  function showWarning(message) {
-    warningText.innerText = message;
-
-    warningPopup.style.display = "flex";
-  }
-
-  warningOkBtn.addEventListener("click", async () => {
-    warningPopup.style.display = "none";
-
-    /* ===== RESTORE FULLSCREEN ===== */
-
-    if (!document.fullscreenElement) {
-      try {
-        await document.documentElement.requestFullscreen();
-      } catch (err) {
-        console.log("Fullscreen Restore Error:", err);
-      }
-    }
-  });
-
-  /* ================= FULLSCREEN START ================= */
-
-  const overlay = document.getElementById("fullscreenOverlay");
-
-  overlay.addEventListener("click", () => {
-    document.documentElement
-      .requestFullscreen()
-      .then(() => {
-        console.log("Fullscreen Enabled");
-
-        overlay.style.display = "none";
-
-        startInterviewFeatures();
-      })
-      .catch((err) => {
-        console.log("Fullscreen Error:", err);
-      });
-  });
-
-  /* ================= INTERVIEW FEATURES ================= */
-
-  function startInterviewFeatures() {
-    /* ===== BLOCK SHORTCUTS ===== */
-
-    document.addEventListener("keydown", preventKeys);
-
-    /* ===== TAB SWITCH ===== */
-
-    window.addEventListener("blur", handleBlur);
-
-    /* ===== PAGE HIDE ===== */
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    /* ===== FULLSCREEN EXIT ===== */
-
-    document.addEventListener("fullscreenchange", handleFullscreen);
-
-    /* ===== FIRST QUESTION ===== */
-
-    const activeCard = getActiveCard();
-
-    if (!activeCard) return;
-
-    const question = activeCard.querySelector("h4").innerText;
-
-    askAIVoice(question);
-  }
-
-  /* ================= BLOCK KEYS ================= */
-
-  function preventKeys(e) {
-    /* ===== BLOCK F11 ===== */
-
-    if (e.key === "F11") {
-      e.preventDefault();
-    }
-
-    /* ===== BLOCK CTRL SHORTCUTS ===== */
-
-    if (e.ctrlKey && ["t", "w", "r", "n", "shift", "Tab"].includes(e.key)) {
-      e.preventDefault();
-    }
-
-    /* ===== BLOCK ALT KEY ===== */
-
-    if (e.altKey) {
-      e.preventDefault();
-
-      showWarning("Alt key is disabled during interview");
-    }
-  }
-
-  /* ================= TAB SWITCH ================= */
-
-  function handleBlur() {
-    console.log("Window Blur Detected");
-
-    showWarning("Tab switching detected!");
-    setTimeout(() => {
-      document.documentElement.requestFullscreen();
-    }, 500);
-  }
-
-  /* ================= VISIBILITY ================= */
-
-  function handleVisibilityChange() {
-    if (document.hidden) {
-      showWarning("You left the interview tab!");
-    }
-    setTimeout(() => {
-      document.documentElement.requestFullscreen();
-    }, 500);
-  }
-
-  /* ================= FULLSCREEN EXIT ================= */
-
-  function handleFullscreen() {
-    if (!document.fullscreenElement) {
-      showWarning("Fullscreen mode is required!");
-
-      setTimeout(() => {
-        document.documentElement.requestFullscreen();
-      }, 500);
-    }
-  }
-
   /* ================= VIDEO TOGGLE ================= */
-
-  let isVideoOn = false;
-
-  /* ===== DEFAULT VIDEO ON ===== */
 
   const videoStream = document.getElementById("videoStream");
 
   videoStream.src = "http://localhost:8000/video";
 
-  /* ================= TOGGLE ================= */
-
   videoBtn.addEventListener("click", () => {
-    /* ===== TURN OFF ===== */
-
     if (isVideoOn) {
       videoStream.src = "";
 
@@ -254,7 +116,6 @@ function initButtons() {
 
       console.log("Video Stopped");
     } else {
-      /* ===== TURN ON ===== */
       videoStream.src = "http://localhost:8000/video";
 
       videoBtn.classList.remove("off");
@@ -306,7 +167,6 @@ async function loadQuestions() {
 
     if (!report.questions || report.questions.length === 0) {
       console.log("No questions found");
-
       return;
     }
 
@@ -314,46 +174,48 @@ async function loadQuestions() {
 
     report.questions.forEach((item, index) => {
       const card = document.createElement("div");
-
-      card.className =
-        index === 0 ? "question-card active-question" : "question-card";
+      if (index === 0) {
+        card.className = "question-card active-question";
+      } else if (index === 1) {
+        card.className = "question-card next-question";
+      } else {
+        card.className = "question-card hidden-question";
+      }
 
       card.innerHTML = `
+      
+      <div class="question-number">
+        ${String(index + 1).padStart(2, "0")}
+      </div>
 
-          <div class="question-number">
-            ${String(index + 1).padStart(2, "0")}
-          </div>
+      <div class="question-content">
 
-          <div class="question-content">
+        <h4>${item.question}</h4>
 
-            <h4>
-              ${item.question}
-            </h4>
+        <div class="answer-wrapper">
 
-            <div class="answer-wrapper">
+          <textarea
+            class="answer-box"
+            placeholder="Your answer..."
+          ></textarea>
 
-              <textarea
-                class="answer-box"
-                placeholder="Your answer..."
-              ></textarea>
+          <button class="submitAnswer">
+            Submit Answer
+          </button>
 
-              <button class="submitAnswer">
-                Submit Answer
-              </button>
+        </div>
 
-            </div>
+      </div>
 
-          </div>
-
-          <span class="question-time">
-            LIVE
-          </span>
-
-        `;
+      <span class="question-time">
+        LIVE
+      </span>
+      
+      `;
 
       questionList.appendChild(card);
 
-      /* ================= SUBMIT ================= */
+      /* ================= SUBMIT ANSWER ================= */
 
       const submitBtn = card.querySelector(".submitAnswer");
 
@@ -362,18 +224,24 @@ async function loadQuestions() {
 
         const answerBox = card.querySelector(".answer-box");
 
-        const answer = answerBox.value.trim();
+        const typedText = answerBox.value.trim();
 
-        if (!answer) {
+        const transcript = answerBox.dataset.transcript || "";
+
+        const finalAnswer = `
+${typedText}
+${transcript}
+`.trim();
+
+        if (!finalAnswer) {
           answerBox.focus();
-
           return;
         }
 
         try {
-          /* ===== SAVE ANSWER ===== */
+          /* ================= SAVE ANSWER ================= */
 
-          await fetch("http://localhost:4000/interview/answer", {
+          await fetch("http://localhost:4000/save-answer", {
             method: "POST",
 
             headers: {
@@ -381,30 +249,35 @@ async function loadQuestions() {
             },
 
             body: JSON.stringify({
-              question: item.question,
-
-              answer,
+              questionIndex: index,
+              typedText,
+              transcript,
             }),
           });
 
           console.log("Answer Saved");
 
-          /* ===== NEXT CARD ===== */
+          /* ================= NEXT QUESTION ================= */
+
+          card.style.display = "none";
 
           const nextCard = card.nextElementSibling;
 
-          /* ===== REMOVE CURRENT ===== */
-
-          card.remove();
-
-          /* ===== ACTIVATE NEXT ===== */
-
           if (nextCard) {
+            nextCard.classList.remove("next-question");
+            nextCard.classList.remove("hidden-question");
+
             nextCard.classList.add("active-question");
+            const secondNext = nextCard.nextElementSibling;
+
+            if (secondNext) {
+              secondNext.classList.remove("hidden-question");
+
+              secondNext.classList.add("next-question");
+            }
 
             nextCard.scrollIntoView({
               behavior: "smooth",
-
               block: "center",
             });
 
@@ -419,9 +292,37 @@ async function loadQuestions() {
             askAIVoice(nextQuestion);
           } else {
             alert("Interview Completed");
+            console.log("Interview Completed");
+
+            /* SHOW LOADING */
+
+            const loadingScreen = document.getElementById("loadingScreen");
+
+            loadingScreen.classList.add("show");
+
+            /* GENERATE REPORT */
+
+            const response = await fetch(
+              "http://localhost:4000/interview-feedback",
+              {
+                method: "POST",
+              },
+            );
+
+            const data = await response.json();
+
+            console.log("Final Report:", data);
+
+            setTimeout(async () => {
+              if (document.fullscreenElement) {
+                await document.exitFullscreen();
+              }
+
+              window.location.href = "/dashboard.html";
+            }, 1500);
           }
         } catch (error) {
-          console.log("Submit Error:", error);
+          console.error("Submit Error:", error);
         }
       });
     });
@@ -456,9 +357,10 @@ async function sendToWhisper() {
 
     if (!audioChunks.length) {
       alert("No audio found");
-
       return;
     }
+
+    const oldText = answerBox?.value || "";
 
     if (answerBox) {
       answerBox.value = "Analyzing...";
@@ -483,14 +385,21 @@ async function sendToWhisper() {
 
     if (!data.text) {
       if (answerBox) {
-        answerBox.value = "No transcript found";
+        answerBox.value = oldText;
       }
 
       return;
     }
 
+    /* ================= SAVE TRANSCRIPT ================= */
+
     if (answerBox) {
-      answerBox.value = data.text;
+      answerBox.dataset.transcript = data.text;
+
+      answerBox.value = `
+${oldText.replace("Analyzing...", "").trim()}
+${data.text}
+`.trim();
     }
   } catch (error) {
     console.error("Whisper Error:", error);
@@ -499,9 +408,12 @@ async function sendToWhisper() {
   audioChunks = [];
 }
 
+/* ================= CONFIDENCE ================= */
+
 async function getConfidenceScore() {
   try {
     const res = await fetch("http://localhost:8000/confidence");
+
     const data = await res.json();
 
     console.log("Confidence Score:", data.confidence_score);
@@ -509,61 +421,7 @@ async function getConfidenceScore() {
     return data.confidence_score || 0;
   } catch (err) {
     console.error("Error fetching confidence:", err);
+
     return 0;
   }
 }
-
-function getLatestReport() {
-  const dir = path.join(__dirname, "..", "reports");
-
-  if (!fs.existsSync(dir)) {
-    throw new Error("Reports folder not found");
-  }
-
-  const files = fs.readdirSync(dir);
-
-  const jsonFiles = files.filter(
-    (f) => f.endsWith(".json") && f !== "report.pdf",
-  );
-
-  if (!jsonFiles.length) {
-    throw new Error("No JSON reports found");
-  }
-
-  const latest = jsonFiles
-    .map((file) => ({
-      name: file,
-      time: fs.statSync(path.join(dir, file)).mtime.getTime(),
-    }))
-    .sort((a, b) => b.time - a.time)[0].name;
-
-  return path.join(dir, latest);
-}
-
-/* ================= DASHBOARD ================= */
-
-dashboardBtn.addEventListener("click", async () => {
-  try {
-    /* ===== SAVE FINAL FEEDBACK ===== */
-
-    const response = await fetch("http://localhost:4000/interview-feedback", {
-      method: "POST",
-    });
-
-    const data = await response.json();
-
-    console.log("Final Report:", data);
-
-    /* ===== EXIT FULLSCREEN ===== */
-
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-    }
-
-    /* ===== REDIRECT ===== */
-
-    window.location.href = "/dashboard.html";
-  } catch (error) {
-    console.error("Dashboard Redirect Error:", error);
-  }
-});
