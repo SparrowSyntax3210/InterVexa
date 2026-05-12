@@ -366,11 +366,19 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
 async function generateQuestions(skills, role, experience, mode, count) {
   try {
+    const isHR = mode.toLowerCase().includes("hr");
+
     const messages = [
       {
         role: "system",
-        content:
-          "You are an expert AI interviewer that generates professional interview questions.",
+        content: `
+You are an expert AI interviewer.
+
+Return ONLY valid JSON array.
+No markdown.
+No explanation.
+No extra text.
+`,
       },
 
       {
@@ -378,27 +386,52 @@ async function generateQuestions(skills, role, experience, mode, count) {
         content: `
 Generate EXACTLY ${count} interview questions.
 
-Role: ${role}
-Experience: ${experience} years
-Interview Type: ${mode}
+ROLE: ${role}
+EXPERIENCE: ${experience}
+INTERVIEW TYPE: ${mode}
 
-Skills:
+${
+  isHR
+    ? `
+IMPORTANT:
+Generate ONLY HR / behavioral / communication questions.
+
+DO NOT generate:
+- coding questions
+- programming questions
+- technical concepts
+- frameworks
+- DSA
+- system design
+
+Examples:
+- Tell me about yourself
+- Why do you want this role?
+- Describe a challenge you faced
+- How do you handle conflict?
+`
+    : `
+IMPORTANT:
+Generate ONLY TECHNICAL questions based on these skills.
+
+SKILLS:
 ${skills?.length ? skills.join(", ") : "General Development"}
 
-STRICT RULES:
-- Generate EXACTLY ${count} questions
-- No repeated questions
-- Return ONLY valid JSON
-- No markdown
-- No explanation
+Focus on:
+- technical concepts
+- frameworks
+- coding knowledge
+- project experience
+`
+}
 
-OUTPUT FORMAT:
+Return format:
 
 [
   {
-    "type": "technical",
-    "skill": "React",
-    "question": "Explain Virtual DOM in React"
+    "type": "${isHR ? "hr" : "technical"}",
+    "skill": "${isHR ? "Communication" : "React"}",
+    "question": "Question here"
   }
 ]
 `,
