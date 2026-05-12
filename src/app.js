@@ -711,38 +711,23 @@ app.get("/download-report", async (req, res) => {
       });
     }
 
-    console.log("REPORT PATH:", reportPath);
-
     const confidenceScore = await getConfidenceScore();
-
-    console.log("CONFIDENCE SCORE:", confidenceScore);
 
     const outputPath = path.join(reportDir, "InterVexa-Report.pdf");
 
-    console.log("GENERATING PDF...");
+    /* ================= DELETE OLD PDF ================= */
 
-    /* ================= GENERATE PDF ================= */
+    if (fs.existsSync(outputPath)) {
+      fs.unlinkSync(outputPath);
+    }
 
-    generatePDF(reportPath, outputPath, confidenceScore);
+    /* ================= GENERATE NEW PDF ================= */
 
-    /* ================= WAIT ================= */
+    await generatePDF(reportPath, outputPath, confidenceScore);
 
-    setTimeout(() => {
-      console.log("CHECKING PDF...");
+    /* ================= SEND PDF ================= */
 
-      if (!fs.existsSync(outputPath)) {
-        console.log("PDF NOT FOUND");
-
-        return res.status(500).json({
-          success: false,
-          message: "PDF generation failed",
-        });
-      }
-
-      console.log("PDF READY");
-
-      return res.download(outputPath);
-    }, 2000);
+    return res.download(outputPath);
   } catch (error) {
     console.error("DOWNLOAD REPORT ERROR:", error);
 

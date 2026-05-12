@@ -1,71 +1,84 @@
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 
-// ================= COLORS =================
+/* ================= COLORS ================= */
+
 const COLORS = {
-  background: "#000000",
-  card: "#0a0a0a",
-  glass: "#111111",
+  background: "#050505",
 
-  accent: "#00FFFF",
-  accentSoft: "#7ffcff",
+  card: "#0d0d0d",
 
-  secondary: "#7c3aed",
+  card2: "#101010",
 
-  border: "#123838",
+  accent: "#00F7FF",
 
-  text: "#ffffff",
-  textSecondary: "#b5b5b5",
+  accentGlow: "#7DF9FF",
 
-  success: "#22c55e",
-  danger: "#ff4b4b",
+  secondary: "#7C3AED",
+
+  border: "#1d1d1d",
+
+  text: "#FFFFFF",
+
+  textSecondary: "#9CA3AF",
+
+  success: "#22C55E",
+
+  danger: "#FF4B4B",
 };
 
-// ================= HELPERS =================
-function toArray(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  return [value];
-}
+/* ================= HELPERS ================= */
 
 function safeText(value) {
   return value ? String(value) : "N/A";
 }
 
-function drawCard(doc, x, y, w, h) {
-  doc.roundedRect(x, y, w, h, 14).fillAndStroke(COLORS.card, COLORS.border);
+function toArray(value) {
+  if (!value) return [];
+
+  return Array.isArray(value) ? value : [value];
 }
 
-function statCard(doc, x, y, title, value, subtitle) {
-  drawCard(doc, x, y, 150, 90);
+function drawCard(doc, x, y, w, h) {
+  doc
+    .save()
+
+    .roundedRect(x, y, w, h, 18)
+
+    .fillAndStroke(COLORS.card, COLORS.border)
+
+    .restore();
+}
+
+function drawMiniCard(doc, x, y, title, value, subtitle) {
+  doc
+    .roundedRect(x, y, 150, 100, 18)
+    .fillAndStroke(COLORS.card2, COLORS.border);
 
   doc
     .fillColor(COLORS.textSecondary)
     .fontSize(11)
     .font("Helvetica")
-    .text(title, x + 15, y + 15);
+    .text(title, x + 16, y + 16);
 
   doc
     .fillColor(COLORS.text)
-    .fontSize(24)
+    .fontSize(30)
     .font("Helvetica-Bold")
-    .text(value, x + 15, y + 35);
+    .text(value, x + 16, y + 38);
 
   doc
     .fillColor(COLORS.success)
     .fontSize(10)
     .font("Helvetica")
-    .text(subtitle, x + 15, y + 68);
+    .text(subtitle, x + 16, y + 78);
 }
 
-// ================= MAIN FUNCTION =================
 function generatePDF(reportPath, outputPath, confidenceScore) {
   return new Promise((resolve, reject) => {
     try {
-      // ================= READ REPORT =================
       const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
 
-      // ================= CREATE DOC =================
       const doc = new PDFDocument({
         margin: 0,
         size: "A4",
@@ -75,185 +88,275 @@ function generatePDF(reportPath, outputPath, confidenceScore) {
 
       doc.pipe(stream);
 
-      // ================= BACKGROUND =================
-      doc.rect(0, 0, doc.page.width, doc.page.height).fill(COLORS.background);
+      /* ================= PAGE BG ================= */
 
-      // ================= HEADER =================
+      function drawPageBackground() {
+        doc.rect(0, 0, doc.page.width, doc.page.height).fill(COLORS.background);
+
+        /* TOP GLOW */
+
+        doc.opacity(0.08).circle(500, 80, 140).fill(COLORS.accent);
+
+        doc.opacity(1);
+      }
+
+      drawPageBackground();
+
+      /* ================= HEADER ================= */
+
       doc
         .fillColor(COLORS.text)
-        .fontSize(24)
+        .fontSize(34)
         .font("Helvetica-Bold")
-        .text("Intervexa Report", 50, 40);
+        .text("InterVexa Report", 50, 45);
 
       doc
         .fillColor(COLORS.textSecondary)
-        .fontSize(11)
+        .fontSize(13)
         .font("Helvetica")
-        .text("AI Powered Interview Analysis", 50, 70);
+        .text("AI Powered Interview Analysis Dashboard", 50, 85);
 
-      // Accent line
+      /* ================= ACCENT LINE ================= */
+
       doc
-        .moveTo(50, 95)
-        .lineTo(545, 95)
+        .moveTo(50, 118)
+        .lineTo(545, 118)
         .strokeColor(COLORS.accent)
-        .lineWidth(1.5)
+        .lineWidth(2)
         .stroke();
 
-      // ================= STATS =================
-      statCard(
-        doc,
-        50,
-        120,
-        "Confidence Score",
-        `${confidenceScore || 0}%`,
-        "Excellent",
-      );
+      /* ================= STATS ================= */
 
-      statCard(
-        doc,
-        220,
-        120,
-        "Questions",
-        `${(report.answers || []).length}`,
-        "Answered",
-      );
-
-      // ================= AVG SCORE =================
       let avg = 0;
 
       if (report.answers?.length) {
-        const total = report.answers.reduce((acc, item) => {
-          return acc + (item.feedback?.score || 0);
-        }, 0);
+        const total = report.answers.reduce(
+          (acc, item) => acc + (item.feedback?.score || 0),
+          0,
+        );
 
         avg = Math.round(total / report.answers.length);
       }
 
-      statCard(doc, 390, 120, "Average Score", `${avg}%`, "Performance");
+      drawMiniCard(
+        doc,
+        50,
+        145,
+        "Confidence",
+        `${confidenceScore || 0}%`,
+        "Excellent",
+      );
 
-      // ================= SECTION TITLE =================
+      drawMiniCard(
+        doc,
+        220,
+        145,
+        "Questions",
+        `${report.answers?.length || 0}`,
+        "Answered",
+      );
+
+      drawMiniCard(doc, 390, 145, "Average", `${avg}%`, "Performance");
+
+      /* ================= SECTION TITLE ================= */
+
       doc
         .fillColor(COLORS.text)
-        .fontSize(18)
+        .fontSize(22)
         .font("Helvetica-Bold")
-        .text("Interview Breakdown", 50, 250);
+        .text("Interview Breakdown", 50, 285);
 
-      let currentY = 290;
+      let currentY = 330;
 
-      // ================= ANSWERS =================
+      /* ================= QUESTIONS ================= */
+
       (report.answers || []).forEach((item, index) => {
-        // New Page
-        if (currentY > 650) {
+        const question = report.questions?.[index]?.question || "No Question";
+
+        const answer = item.finalAnswer || item.answer || "No Answer";
+
+        const feedback = item.feedback || {};
+
+        const questionHeight = doc.heightOfString(question, {
+          width: 410,
+        });
+
+        const answerHeight = doc.heightOfString(answer, {
+          width: 410,
+        });
+
+        const cardHeight = 340 + questionHeight + Math.min(answerHeight, 160);
+
+        /* PAGE BREAK */
+
+        if (currentY + cardHeight > 760) {
           doc.addPage();
 
-          doc
-            .rect(0, 0, doc.page.width, doc.page.height)
-            .fill(COLORS.background);
+          drawPageBackground();
 
           currentY = 50;
         }
 
-        const cardHeight = 190;
+        /* CARD */
 
-        // Card
         drawCard(doc, 50, currentY, 495, cardHeight);
 
-        // ================= QUESTION =================
+        /* QUESTION TITLE */
+
         doc
           .fillColor(COLORS.accent)
-          .fontSize(14)
+          .fontSize(20)
           .font("Helvetica-Bold")
-          .text(`Question ${index + 1}`, 70, currentY + 20);
+          .text(`Question ${index + 1}`, 75, currentY + 25);
 
-        doc
-          .fillColor(COLORS.text)
-          .fontSize(12)
-          .font("Helvetica")
-          .text(safeText(item.question), 70, currentY + 45, {
-            width: 430,
-          });
+        /* SCORE BADGE */
 
-        // ================= ANSWER =================
-        doc
-          .fillColor(COLORS.textSecondary)
-          .fontSize(11)
-          .font("Helvetica-Bold")
-          .text("Answer", 70, currentY + 85);
-
-        doc
-          .fillColor(COLORS.text)
-          .fontSize(10)
-          .font("Helvetica")
-          .text(safeText(item.answer), 70, currentY + 105, {
-            width: 430,
-            height: 40,
-          });
-
-        // ================= SCORE BADGE =================
-        doc.roundedRect(430, currentY + 18, 85, 30, 10).fill(COLORS.secondary);
+        doc.roundedRect(425, currentY + 22, 90, 35, 12).fill(COLORS.secondary);
 
         doc
           .fillColor("#ffffff")
-          .fontSize(12)
+          .fontSize(14)
           .font("Helvetica-Bold")
-          .text(`${item.feedback?.score || 0}%`, 455, currentY + 27);
+          .text(`${feedback.score || 0}%`, 455, currentY + 33);
 
-        // ================= STRENGTHS =================
-        const strengths = toArray(item.feedback?.strengths);
+        /* QUESTION LABEL */
+
+        doc
+          .fillColor(COLORS.text)
+          .fontSize(13)
+          .font("Helvetica-Bold")
+          .text("Question", 75, currentY + 75);
+
+        /* QUESTION TEXT */
+
+        doc
+          .fillColor(COLORS.textSecondary)
+          .fontSize(11)
+          .font("Helvetica")
+          .text(safeText(question), 75, currentY + 98, {
+            width: 410,
+            lineGap: 4,
+          });
+
+        /* ANSWER */
+
+        const answerY = currentY + 120 + questionHeight;
+
+        doc
+          .fillColor(COLORS.text)
+          .fontSize(13)
+          .font("Helvetica-Bold")
+          .text("Answer", 75, answerY);
+
+        doc
+          .fillColor(COLORS.textSecondary)
+          .fontSize(11)
+          .font("Helvetica")
+          .text(safeText(answer), 75, answerY + 24, {
+            width: 410,
+            lineGap: 4,
+          });
+
+        /* FEEDBACK BOXES */
+
+        /* ================= ANSWER TEXT ================= */
+
+        const answerTextY = answerY + 24;
+
+        doc
+          .fillColor(COLORS.textSecondary)
+          .fontSize(11)
+          .font("Helvetica")
+          .text(safeText(answer), 75, answerTextY, {
+            width: 410,
+            lineGap: 4,
+          });
+
+        /* ================= GET ACTUAL ANSWER HEIGHT ================= */
+
+        const renderedAnswerHeight = doc.heightOfString(safeText(answer), {
+          width: 410,
+          lineGap: 4,
+        });
+
+        /* ================= FEEDBACK POSITION ================= */
+
+        const feedbackY = answerTextY + renderedAnswerHeight + 30;
+
+        /* STRENGTH CARD */
+
+        doc
+          .roundedRect(75, feedbackY, 190, 90, 14)
+          .fillAndStroke("#0f1411", "#1d3b27");
 
         doc
           .fillColor(COLORS.success)
-          .fontSize(11)
+          .fontSize(12)
           .font("Helvetica-Bold")
-          .text("Strengths", 70, currentY + 150);
+          .text("Strengths", 92, feedbackY + 15);
+
+        const strengths = toArray(feedback.strengths);
 
         strengths.slice(0, 2).forEach((s, i) => {
           doc
             .fillColor(COLORS.textSecondary)
             .fontSize(10)
             .font("Helvetica")
-            .text(`• ${safeText(s)}`, 140, currentY + 150 + i * 14);
+            .text(`• ${safeText(s)}`, 92, feedbackY + 38 + i * 16, {
+              width: 150,
+            });
         });
 
-        // ================= IMPROVEMENTS =================
-        const improvements = toArray(item.feedback?.improvements);
+        /* IMPROVEMENT CARD */
+
+        doc
+          .roundedRect(295, feedbackY, 190, 90, 14)
+          .fillAndStroke("#161010", "#4a1f1f");
 
         doc
           .fillColor(COLORS.danger)
-          .fontSize(11)
+          .fontSize(12)
           .font("Helvetica-Bold")
-          .text("Improvements", 300, currentY + 150);
+          .text("Improvements", 312, feedbackY + 15);
+
+        const improvements = toArray(feedback.improvements);
 
         improvements.slice(0, 2).forEach((s, i) => {
           doc
             .fillColor(COLORS.textSecondary)
             .fontSize(10)
             .font("Helvetica")
-            .text(`• ${safeText(s)}`, 410, currentY + 150 + i * 14);
+            .text(`• ${safeText(s)}`, 312, feedbackY + 38 + i * 16, {
+              width: 150,
+            });
         });
 
-        currentY += cardHeight + 20;
+        currentY += cardHeight + 28;
       });
 
-      // ================= FOOTER =================
+      /* ================= FOOTER ================= */
+
       doc
         .fillColor(COLORS.textSecondary)
         .fontSize(10)
         .font("Helvetica")
-        .text("Generated by Intervexa AI", 0, doc.page.height - 40, {
+        .text("Generated by InterVexa AI", 0, doc.page.height - 35, {
           align: "center",
         });
 
-      // ================= FINISH =================
+      /* ================= FINISH ================= */
+
       doc.end();
 
       stream.on("finish", () => {
         console.log("✅ PDF Generated Successfully");
+
         resolve();
       });
 
       stream.on("error", (err) => {
         console.log("❌ PDF Stream Error:", err);
+
         reject(err);
       });
     } catch (error) {

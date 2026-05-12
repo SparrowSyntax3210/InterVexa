@@ -1,6 +1,12 @@
+/* ================= LOAD REPORT ================= */
+
 async function loadReport() {
   try {
     const response = await fetch("http://localhost:4000/view-report");
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch report");
+    }
 
     const report = await response.json();
 
@@ -9,7 +15,6 @@ async function loadReport() {
     let html = "";
 
     let totalScore = 0;
-
     let bestScore = 0;
 
     report.answers.forEach((item, index) => {
@@ -28,7 +33,7 @@ async function loadReport() {
       }
 
       html += `
-      
+
       <div class="feedback-card">
 
         <h2 class="question-title">
@@ -49,17 +54,19 @@ async function loadReport() {
 
           <h3>Answer:</h3>
 
-            <p>${
+          <p>
+            ${
               item.finalAnswer
                 ? item.finalAnswer.split("\n")[0]
                 : item.answer || "No Answer"
-            }</p>
+            }
+          </p>
 
         </div>
 
         <div class="score-box">
 
-          <!-- ================= OVERALL ================= -->
+          <!-- OVERALL -->
 
           <div class="score-item">
 
@@ -75,7 +82,7 @@ async function loadReport() {
 
           </div>
 
-          <!-- ================= COMMUNICATION ================= -->
+          <!-- COMMUNICATION -->
 
           <div class="score-item">
 
@@ -91,7 +98,7 @@ async function loadReport() {
 
           </div>
 
-          <!-- ================= TECHNICAL ================= -->
+          <!-- TECHNICAL -->
 
           <div class="score-item">
 
@@ -126,13 +133,13 @@ async function loadReport() {
 
     document.getElementById("totalInterviews").innerText = totalInterviews;
 
-    document.getElementById("avgScore").innerText = avgScore + "%";
+    document.getElementById("confidenceScore").innerText = avgScore + "%";
 
     document.getElementById("bestScore").innerText = bestScore + "%";
 
     document.getElementById("overallScore").innerText = avgScore + "%";
 
-    /* ================= CIRCLE ================= */
+    /* ================= UPDATE CIRCLE ================= */
 
     const degree = (avgScore / 100) * 360;
 
@@ -142,8 +149,64 @@ async function loadReport() {
       #0d0d0d ${degree}deg
     )`;
   } catch (error) {
-    console.log(error);
+    console.log("LOAD REPORT ERROR:", error);
   }
 }
+
+/* ================= DOWNLOAD REPORT ================= */
+
+const downloadBtn = document.getElementById("downloadReportBtn");
+
+downloadBtn.addEventListener("click", async () => {
+  try {
+    downloadBtn.disabled = true;
+
+    downloadBtn.innerHTML = `
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      Generating...
+    `;
+
+    const response = await fetch("http://localhost:4000/download-report");
+
+    if (!response.ok) {
+      throw new Error("Failed to download report");
+    }
+
+    /* ================= GET PDF BLOB ================= */
+
+    const blob = await response.blob();
+
+    /* ================= CREATE TEMP URL ================= */
+
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+
+    a.download = "InterVexa-Report.pdf";
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.log("DOWNLOAD ERROR:", error);
+
+    alert("Failed to download report");
+  } finally {
+    downloadBtn.disabled = false;
+
+    downloadBtn.innerHTML = `
+      <i class="fa-solid fa-download"></i>
+      Download Report
+    `;
+  }
+});
+
+/* ================= INIT ================= */
 
 loadReport();
