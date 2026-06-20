@@ -1,0 +1,29 @@
+{
+   "buildCommand": "npm run build",
+   "devCommand": "npm run dev",
+   "redirects": [
+       {
+           "source": "/old-route",
+           "destination": "/new-route",
+           "permanent": true
+       }
+   ],
+   "functions": {
+       "api/hello.js": {
+           "memory": 512,
+           "maxDuration": 15
+       }
+   },
+   "images": {
+       "sizes": [320, 640, 1280],
+       "remotePatterns": [
+           {
+               "protocol": "https",
+               "hostname": "cdn.example.com",
+               "pathname": "/assets/*"
+           }
+       ]
+   },
+   "regions": ["iad1"],
+   "trailingSlash": true
+}
