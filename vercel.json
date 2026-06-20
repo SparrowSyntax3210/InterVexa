@@ -1,7 +1,6 @@
 {
    "buildCommand": "npm run build",
    "devCommand": "npm run dev",
-   "start": "node server.js",
    "redirects": [
        {
            "source": "/old-route",
